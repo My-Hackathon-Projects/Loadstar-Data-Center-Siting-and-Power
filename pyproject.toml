@@ -1,0 +1,33 @@
+[project]
+name = "loadstar"
+version = "0.1.0"
+description = "Data-center siting and power planning skeleton for the Invertix challenge"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi",
+  "httpx",
+  "psycopg[binary]",
+  "pydantic-settings",
+  "ruff",
+  "uvicorn",
+  "pydantic",
+  "pyright",
+  "sqlalchemy",
+  "typer",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.pyright]
+pythonVersion = "3.12"
+typeCheckingMode = "strict"
+include = ["api", "engine"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]

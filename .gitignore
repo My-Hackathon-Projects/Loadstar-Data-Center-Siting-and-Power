@@ -1,0 +1,16 @@
+.DS_Store
+.env
+.pytest_cache/
+.ruff_cache/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+data/*.db
+data/processed/
+web/dist/
+web/node_modules/
+web/coverage/
+web/.vite/
+web/*.tsbuildinfo
+web/vite.config.d.ts
+web/vite.config.js

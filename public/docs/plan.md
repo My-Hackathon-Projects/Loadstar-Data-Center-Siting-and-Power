@@ -10,7 +10,7 @@ The product must:
 - Explain trade-offs across price, carbon, grid headroom, congestion, connectivity, and land suitability.
 - Show map overlays for capacity/headroom, prices, carbon, congestion, connectivity, exclusions, and composite score.
 - Optimize a selected site's power supply mix across grid, PPA, on-site generation, storage, and optional backup.
-- Provide a grounded chat agent whose numeric answers come only from backend tools.
+- Provide a grounded chat agent whose numeric answers come only from API/engine tools.
 
 Primary execution rule: whenever the next task is unclear, build whatever the **280 MW AI training campus demo path** needs next.
 
@@ -20,7 +20,7 @@ Primary demo path:
 2. The map highlights candidate sites in Europe.
 3. The system compares a Nordic candidate against Frankfurt.
 4. The optimizer returns a cost/carbon Pareto frontier and dispatch summary.
-5. The agent explains the result using only backend tool output.
+5. The agent explains the result using only API/engine tool output.
 
 ## Task Zero: Prove External Access Before Code
 
@@ -94,8 +94,8 @@ Cut order if time collapses:
 
 ## Core Stack And Models
 
-- **Frontend:** Next.js + React + MapLibre GL + deck.gl H3 layer for the final product. The walking skeleton may start with a static web page using the same API contracts.
-- **Backend:** FastAPI + Pydantic + SQLAlchemy.
+- **Frontend:** Vite + React 18 + TypeScript strict SPA, MapLibre GL + deck.gl H3 layer for the final product.
+- **Backend:** FastAPI + Pydantic v2 + synchronous SQLAlchemy 2.0 with psycopg 3.
 - **Database:** PostgreSQL + PostGIS for production; Parquet/NetCDF for offline artifacts; Redis and worker queue only after the demo path works.
 - **Spatial unit:** H3 resolution 5 for Europe-wide search; optional resolution 7 for shortlisted regions.
 - **Land model:** AlphaEarth 64-dimensional embeddings plus Earth Engine Random Forest for `buildable_fraction`.
@@ -157,7 +157,7 @@ Done when each external dependency is marked `ok`, `blocked`, or `fallback`.
 
 ### 3. Create Walking Skeleton
 
-- Add minimal `web/`, `api/`, `engine/`, `pipeline/`, `ml/`, `eval/`, and `data/` structure.
+- Add the production repository skeleton: `web/` for the Vite React UI, `api/app/` for FastAPI, `engine/` for scoring and optimizer code, `pipeline/` for ingestion CLIs, `db/` for migrations, and root `tests/` mirroring package layout.
 - Seed 10 to 20 fixture H3 cells for Sweden, Germany, and Ireland.
 - Render cells on a map-like UI.
 - Search through the API.
@@ -317,9 +317,9 @@ Done when another engineer can run and demo the project from the README.
 
 - Run task-zero access checks before implementation.
 - Run subset pipeline tests for `SE,DE,IE` before full-Europe data.
-- Run backend tests for scoring, validation, endpoint schemas, optimizer constraints, and CFE calculations.
+- Run API and engine tests for scoring, validation, endpoint schemas, optimizer constraints, and CFE calculations.
 - Run ML eval scripts and save metrics.
-- Run frontend lint/typecheck/build once scripts exist.
+- Run web lint/typecheck/build once scripts exist.
 - Use Playwright for the main demo path.
 - Run seeded end-to-end scenario: 280 MW training workload, carbon-heavy search, site comparison, optimizer Pareto.
 

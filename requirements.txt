@@ -1,0 +1,11 @@
+fastapi
+httpx
+psycopg[binary]
+pydantic
+pydantic-settings
+pyright
+pytest
+ruff
+sqlalchemy
+typer
+uvicorn

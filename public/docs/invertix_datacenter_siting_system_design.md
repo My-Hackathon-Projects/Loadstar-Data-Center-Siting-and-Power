@@ -131,7 +131,7 @@ Every step in that flow maps to one of the three "Worth Exploring" bullets. That
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│  FRONTEND (Next.js + MapLibre GL / deck.gl)                  │
+│  WEB (Vite + React + TypeScript + MapLibre GL / deck.gl)     │
 │  Map with toggleable layers │ Site detail panel │ Chat panel │
 │  Pareto chart │ Hourly dispatch chart │ Assumptions panel    │
 └───────────────▲──────────────────────────────▲───────────────┘
@@ -256,7 +256,7 @@ A single LLM agent (Claude via API) with tool calling. Do not over-engineer a mu
 
 ### 4.6 Frontend
 
-- Next.js (or plain Vite + React), MapLibre GL with deck.gl H3HexagonLayer for the cell layers.
+- Vite + React 18 + TypeScript, MapLibre GL with deck.gl H3HexagonLayer for the cell layers.
 - Layer toggles: price, carbon, congestion, connectivity, composite score, ML propensity, exclusions. This is deliverable 3 in one component.
 - Click a cell → detail drawer (features, SHAP bar chart, "optimize supply mix" button).
 - Chat panel docked right; agent tool calls visibly echoed ("searching sites...", "running optimizer...") so judges see the system working.
@@ -306,7 +306,7 @@ Naming limitations precisely demonstrates domain understanding better than hidin
 
 **Serving scale.**
 - Stateless FastAPI behind a load balancer; horizontal scaling is trivial because all heavy state is precomputed.
-- Map layers as static vector tiles (PMTiles on a CDN), so map load costs the backend nothing.
+- Map layers as static vector tiles (PMTiles on a CDN), so map load costs the API nothing.
 - Optimizer runs in a Celery/RQ worker pool with result caching; identical (site, load, constraints) requests hit cache. Pareto sweeps parallelize per carbon-cap point.
 - Agent layer scales with the LLM provider; the tools are the same cached endpoints.
 
@@ -330,7 +330,7 @@ Naming limitations precisely demonstrates domain understanding better than hidin
 3. Run the ingestion pipeline; commit the per-cell feature Parquet.
 4. Export AlphaEarth per-cell mean embeddings for Europe at res 5 from Earth Engine (one reduceRegions export job).
 5. Curate the positive label list of existing data center sites.
-6. Skeleton repo: FastAPI app, Next.js map showing the score layer from Parquet, chat panel stub.
+6. Skeleton repo: FastAPI app, Vite React map showing the score layer from Parquet, chat panel stub.
 
 ### 7.2 During the hackathon (assuming ~24 to 36 hours, two to three people or solo with cuts)
 
@@ -350,13 +350,15 @@ Naming limitations precisely demonstrates domain understanding better than hidin
 
 ```
 loadstar/
-├── data/                  # committed Parquet features, solved OPF NetCDF
-├── pipeline/              # ingestion scripts (ember.py, ember_grids.py, osm.py, itu_bbmaps.py, alphaearth.py, pypsa_opf.py)
-├── ml/                    # train_siting.py, suitability labels, SHAP export
+├── web/                   # Vite React TypeScript UI, map, charts, agent panel
+├── api/app/               # FastAPI routers, schemas, services, core settings/db
 ├── engine/                # scoring.py, supply_mix.py (PyPSA LP), pareto.py
-├── api/                   # FastAPI app, routers, agent/ (tools, prompts, grounding)
-├── web/                   # Next.js frontend
+├── pipeline/              # ingestion CLIs (ember.py, ember_grids.py, osm.py, itu_bbmaps.py, alphaearth.py, pypsa_opf.py)
+├── ml/                    # train_siting.py, suitability labels, SHAP export
+├── db/                    # numbered migrations and schema
+├── tests/                 # unit, API, schema, and pipeline tests mirroring packages
 ├── eval/                  # holdout eval, backtest, golden agent set + results
+├── data/                  # committed Parquet features, solved OPF NetCDF
 ├── ASSUMPTIONS.md         # every cost, WACC, PUE, proxy definition, source
 └── README.md              # architecture diagram, eval numbers, limitations, run instructions
 ```

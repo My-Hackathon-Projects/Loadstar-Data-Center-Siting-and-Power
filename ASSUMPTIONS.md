@@ -1,0 +1,60 @@
+# Loadstar Assumptions
+
+This file is the single source for numeric assumptions used by the skeleton, later optimizer work, and the agent-facing assumptions panel.
+
+## Scope
+
+| Assumption | Value | Source | Justification |
+|---|---:|---|---|
+| Region scope | Europe | Challenge brief and `public/docs/invertix_datacenter_siting_system_design.md` | All official pointer sources are strongest for Europe, especially PyPSA-Eur and Ember. |
+| Development subset | `SE,DE,IE` | `public/docs/plan.md` | Covers the 280 MW demo: Nordic clean-power candidate, Frankfurt comparison, and Dublin congestion context. |
+| Default workload | AI training | Challenge scenario and design doc | Training is latency-tolerant, so power/carbon trade-offs can dominate connectivity. |
+| Default load profile | Flat 24/7 | IEA Energy and AI context in design doc | Standard first-order simplification for data-center planning. |
+| Stretch load profile | Synthetic spiky training load | Design doc | Makes battery value visible beyond price arbitrage; not part of issue 1-5 skeleton. |
+| Default PUE | `1.2` | IEA Energy and AI assumptions cited in design doc | Representative modern hyperscale assumption for first demo calculations. |
+
+## Search Scale Bands
+
+| Threshold | Behavior | Source | Justification |
+|---|---|---|---|
+| `<20 MW` | Warn that headroom rarely binds and rankings are mostly price/carbon/connectivity driven. | Design review feedback captured in `public/docs/plan.md` | Small facilities are unlikely to stress transmission-level connection headroom in this model. |
+| `>700 MW` | Warn that a single connection point is unrealistic and multi-connection campus planning is needed. | Design review feedback captured in `public/docs/plan.md` | Very large campuses usually require multiple interconnection points and staged grid planning. |
+
+## Scoring Defaults
+
+| Assumption | Value | Source | Justification |
+|---|---:|---|---|
+| Price weight | `0.18` | Design doc composite score | Cost is material but should not dominate a carbon-heavy training demo. |
+| Carbon weight | `0.24` | Design doc composite score | The first demo prioritizes clean energy. |
+| Congestion weight | `0.18` | Challenge brief | Grid congestion is one of the official trade-off axes. |
+| Grid proximity/headroom weight | `0.14` | Challenge brief and PyPSA-Eur pointer | Physical connection feasibility must remain visible. |
+| Connectivity weight | `0.10` | ITU BBmaps pointer | Important, but less dominant for AI training workloads than inference. |
+| Land suitability weight | `0.08` | AlphaEarth plan | Keeps land feasibility in the transparent score. |
+| ML viability weight | `0.08` | LightGBM siting plan | Preserves model signal without hiding explicit trade-offs. |
+
+## Optimizer Defaults
+
+| Assumption | Value | Source | Justification |
+|---|---:|---|---|
+| WACC | `7%` | Design doc | Standard placeholder for annualized cost comparisons in the hackathon model. |
+| Solar capex | `600 EUR/kW` | Design doc | Round-number planning assumption for first Pareto calculations. |
+| Battery capex | `250 EUR/kWh` | Design doc | Round-number planning assumption for first Pareto calculations. |
+| Gas backup capex | `800 EUR/kW` | Design doc | Optional firmness placeholder; not active in issue 1-5 skeleton. |
+| Wind PPA strike | `55 EUR/MWh` | Hackathon modeling assumption | Plausible fixed strike for early comparative planning; replace with sourced values later. |
+| Solar PPA strike | `45 EUR/MWh` | Hackathon modeling assumption | Plausible fixed strike for early comparative planning; replace with sourced values later. |
+
+## Hourly Carbon
+
+| Method | Status | Source | Justification |
+|---|---|---|---|
+| ENTSO-E hourly generation mix times standard emissions factors | Preferred | `public/docs/plan.md` | Produces optimizer-ready hourly carbon values and supports 24/7 CFE. |
+| Repeat Ember monthly carbon intensity over each month’s hours | Fallback | `public/docs/plan.md` | Keeps the optimizer usable if hourly generation mix access is delayed. |
+
+## Source Fallback Implications
+
+The current machine cannot fully verify private or credentialed sources without user-provided access. See `public/docs/access_decisions.md` for the latest status.
+
+- If ITU BBmaps is blocked, issue 6 should ingest IXP distances instead and issue 8 should label the feature as an IXP/connectivity proxy rather than fiber distance.
+- If Earth Engine or AlphaEarth approval stalls, issues 9 and 10 should omit AlphaEarth-derived fields and rely on transparent scoring plus non-embedding features.
+- If Ember hourly prices are blocked, issue 6 should use a checked fixture or ENTSO-E-backed fallback and mark price values as provisional.
+- If Zenodo is blocked, issue 6 cannot produce the PyPSA-Eur OPF artifact and must use fixture headroom/congestion until access is restored.
