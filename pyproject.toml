@@ -5,20 +5,17 @@ description = "Data-center siting and power planning skeleton for the Invertix c
 requires-python = ">=3.12"
 dependencies = [
   "fastapi",
-  "httpx",
-  "psycopg[binary]",
-  "pydantic-settings",
-  "ruff",
-  "uvicorn",
   "pydantic",
+  "pydantic-settings",
   "pyright",
-  "sqlalchemy",
+  "ruff",
   "typer",
+  "uvicorn",
 ]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
-testpaths = ["tests"]
+testpaths = ["backend/tests"]
 
 [tool.ruff]
 line-length = 100
@@ -27,7 +24,10 @@ target-version = "py312"
 [tool.pyright]
 pythonVersion = "3.12"
 typeCheckingMode = "strict"
-include = ["api", "engine"]
+include = ["backend/api", "backend/engine", "backend/pipeline"]
+# Earth Engine and other external SDKs lack type stubs; the access-check CLI is a
+# tactical decision-record tool, not part of the strict-typed surface.
+exclude = ["backend/pipeline/access_check.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]

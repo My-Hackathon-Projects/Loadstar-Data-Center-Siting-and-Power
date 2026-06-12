@@ -47,8 +47,20 @@ This file is the single source for numeric assumptions used by the skeleton, lat
 
 | Method | Status | Source | Justification |
 |---|---|---|---|
-| ENTSO-E hourly generation mix times standard emissions factors | Preferred | `public/docs/plan.md` | Produces optimizer-ready hourly carbon values and supports 24/7 CFE. |
-| Repeat Ember monthly carbon intensity over each month’s hours | Fallback | `public/docs/plan.md` | Keeps the optimizer usable if hourly generation mix access is delayed. |
+| ENTSO-E hourly generation mix times standard emissions factors | Preferred, implemented when `--entsoe-generation-mix` is supplied to `backend.pipeline.hourly_carbon` | `public/docs/plan.md`; artifact version `hourly-carbon-v1` | Produces optimizer-ready hourly carbon values and supports 24/7 CFE. |
+| Repeat Ember monthly carbon intensity over each month’s hours | Active local fallback for `SE,DE,IE` when ENTSO-E input is unavailable | `public/docs/plan.md`; source version `ember-monthly-carbon-fixture-v1` | Keeps the optimizer usable if hourly generation mix access is delayed. |
+
+Technology emissions factors for the preferred ENTSO-E method are stored in each `hourly_carbon_subset.json` artifact. Current defaults in `backend.pipeline.hourly_carbon` are: biomass `230`, coal `820`, gas `490`, geothermal `38`, hydro `24`, nuclear `12`, oil `650`, other `500`, other fossil `700`, other renewable `40`, solar `45`, and wind `11` gCO2e/kWh.
+
+## Feature Engineering
+
+| Assumption | Value | Source | Justification |
+|---|---:|---|---|
+| Feature artifact version | `site-features-v1` | Issue 8 implementation | Keeps map/API-facing feature rows versioned and checksum tracked. |
+| Normalization method | 5th/95th percentile clipping | Issue 8 implementation | Reduces outlier dominance while keeping values interpretable for map overlays. |
+| Congestion blend: Ember hub/country | `45%` | Issue 8 implementation | Keeps official congestion layer signal as the largest component. |
+| Congestion blend: OPF line loading | `35%` | Issue 8 implementation | Adds local grid stress from the precomputed OPF artifact. |
+| Congestion blend: nodal price spread | `20%` | Issue 8 implementation | Adds economic congestion signal without overwhelming hub/country context. |
 
 ## Source Fallback Implications
 

@@ -12,11 +12,11 @@ The current implementation covers issues `#1` through `#5`:
 
 ## Repository Layout
 
-- Frontend: `web/` contains the Vite + React 18 + TypeScript SPA.
-- Backend API: `api/app/` contains FastAPI routers, schemas, services, and core settings.
+- Frontend: `frontend/` contains the Vite + React 18 + TypeScript SPA.
+- Backend API: `api/app/` contains FastAPI routers, services, and core settings.
 - Backend domain logic: `engine/` contains pure Python scoring and optimizer code.
-- Backend data tooling: `pipeline/` contains ingestion/access-check CLIs, and `db/` contains numbered SQL migrations.
-- Tests: `tests/` mirrors the Python package layout.
+- Backend data tooling: `backend/pipeline/` contains ingestion and access-check CLIs, and `db/` contains numbered SQL migrations.
+- Tests: `tests/` and `backend/tests/` mirror the Python package layout.
 
 ## Current Demo Path
 
@@ -41,7 +41,7 @@ Install dependencies:
 
 ```bash
 python3 -m pip install -r requirements.txt
-npm --prefix web install
+npm --prefix frontend install
 ```
 
 ## Run The API And Demo UI
@@ -55,7 +55,7 @@ python3 -m uvicorn api.app.main:app --reload
 Start the web app in another shell:
 
 ```bash
-npm --prefix web run dev
+npm --prefix frontend run dev
 ```
 
 Then open the Vite URL printed by npm, normally:
@@ -89,7 +89,7 @@ curl -sS http://127.0.0.1:8000/sites/search \
 Run the external source check script before replacing fixtures with real data:
 
 ```bash
-python3 -m pipeline.access_check --write public/docs/access_decisions.md
+python3 -m backend.pipeline.access_check --write public/docs/access_decisions.md
 ```
 
 Optional environment variables:
@@ -120,6 +120,52 @@ This intentionally creates only:
 
 Later ingestion issues should add their own tables when they populate them.
 
+## Run The Subset Ingestion Pipeline
+
+Issue 6 adds a backend-scoped subset-first artifact command. It accepts a country subset, writes processed JSON artifacts under `data/processed/subset/`, and records source fallback status plus checksums in `source_artifacts`.
+
+```bash
+python3 -m backend.pipeline.subset_ingestion \
+  --countries SE,DE,IE \
+  --output-dir data/processed/subset \
+  --metadata-database data/processed/source_artifacts.db
+```
+
+The command writes:
+
+- `manifest.json`
+- `pypsa_network_subset.json`
+- `pypsa_clustered_opf.json`
+- `hourly_energy_subset.json`
+- `ember_grids_congestion_layers.json`
+- `osm_site_feature_layers.json`
+- `connectivity_fiber_or_ixp.json`
+
+The command also upserts one `source_artifacts` row per generated artifact, including the manifest. The OPF artifact is always precomputed; no PyPSA solve runs live in the demo path.
+
+## Build Hourly Carbon And Site Features
+
+Issue 7 builds optimizer-ready hourly carbon rows. The preferred method accepts an ENTSO-E generation-mix JSON input and multiplies hourly technology generation by documented emissions factors. Without that input, the active local method repeats Ember-style monthly carbon intensity across each hour in the month.
+
+```bash
+python3 -m backend.pipeline.hourly_carbon \
+  --countries SE,DE,IE \
+  --output-dir data/processed/subset \
+  --metadata-database data/processed/source_artifacts.db
+```
+
+Issue 8 builds per-cell ranking features from the subset artifacts and hourly carbon output:
+
+```bash
+python3 -m backend.pipeline.feature_engineering \
+  --countries SE,DE,IE \
+  --input-dir data/processed/subset \
+  --output-dir data/processed/subset \
+  --metadata-database data/processed/source_artifacts.db
+```
+
+The feature artifact writes `site_features_subset.json` with complete searchable-cell fields, normalized score inputs, map overlay values, congestion blend components, and explicit missing-data flags for fallback sources.
+
 ## Validation
 
 ```bash
@@ -132,7 +178,7 @@ For a Python-only check while the web dependencies are not installed yet:
 
 ```bash
 python3 -m pytest
-python3 -m pyright api engine
+python3 -m pyright api engine backend/pipeline
 ```
 
 The current tests cover:
@@ -142,6 +188,9 @@ The current tests cover:
 - detail and optimizer contracts
 - access decision fallback behavior
 - applying the four-table schema from zero
+- subset ingestion artifacts and source metadata
+- hourly carbon preferred/fallback methods
+- feature engineering normalization and missing-data flags
 
 ## Non-Goals In This Batch
 
