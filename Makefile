@@ -1,4 +1,4 @@
-.PHONY: setup dev web-dev lint format typecheck test migrate pipeline-subset ingest-subset carbon-subset features-subset
+.PHONY: setup dev web-dev lint format typecheck test migrate pipeline-subset ingest-subset carbon-subset alphaearth-land-subset features-subset
 
 setup:
 	python3 -m pip install -r requirements.txt
@@ -37,6 +37,9 @@ ingest-subset:
 
 carbon-subset:
 	python3 -m backend.pipeline.hourly_carbon --countries SE,DE,IE --output-dir data/processed/subset --metadata-database data/processed/source_artifacts.db
+
+alphaearth-land-subset:
+	python3 -m backend.pipeline.alphaearth_land --countries SE,DE,IE --output-dir data/processed/subset --eval-dir eval --metadata-database data/processed/source_artifacts.db
 
 features-subset:
 	python3 -m backend.pipeline.feature_engineering --countries SE,DE,IE --input-dir data/processed/subset --output-dir data/processed/subset --metadata-database data/processed/source_artifacts.db

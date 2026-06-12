@@ -2,21 +2,22 @@
 
 Loadstar is a decision-support product for the Invertix **Data-Center Siting & Power** challenge. It recommends European data-center locations for a requested MW size, explains trade-offs across energy and connectivity constraints, and returns a chart-ready supply-mix optimization response for the selected site.
 
-The current implementation covers issues `#1` through `#5`:
+The current implementation covers issues `#1` through `#9`:
 
 - `public/docs/plan.md` is the canonical build plan.
 - `public/docs/access_decisions.md` records task-zero external source checks and downstream fallback implications.
 - A fixture-backed walking skeleton exposes the API contracts and a Vite + React + TypeScript demo UI.
 - `ASSUMPTIONS.md` centralizes numeric assumptions and source notes.
-- `db/001_initial.sql` defines the minimal four-table schema for the first demo slice.
+- `backend/db/001_initial.sql` defines the minimal four-table schema for the first demo slice.
+- A subset AlphaEarth land pipeline writes buildable-land and data-center-similarity features with deterministic fallback metrics.
 
 ## Repository Layout
 
 - Frontend: `frontend/` contains the Vite + React 18 + TypeScript SPA.
-- Backend API: `api/app/` contains FastAPI routers, services, and core settings.
-- Backend domain logic: `engine/` contains pure Python scoring and optimizer code.
-- Backend data tooling: `backend/pipeline/` contains ingestion and access-check CLIs, and `db/` contains numbered SQL migrations.
-- Tests: `tests/` and `backend/tests/` mirror the Python package layout.
+- Backend API: `backend/api/` contains FastAPI routers, services, and core settings.
+- Backend domain logic: `backend/engine/` contains pure Python scoring and optimizer code.
+- Backend data tooling: `backend/pipeline/` contains ingestion, land-model, and access-check CLIs, and `backend/db/` contains numbered SQL migrations.
+- Tests: `backend/tests/` mirrors the Python package layout.
 
 ## Current Demo Path
 
@@ -49,7 +50,7 @@ npm --prefix frontend install
 Start the API:
 
 ```bash
-python3 -m uvicorn api.app.main:app --reload
+python3 -m uvicorn backend.api.main:app --reload
 ```
 
 Start the web app in another shell:
@@ -108,7 +109,7 @@ The checker does not print secrets. If a source is blocked, it records the fallb
 For the first skeleton batch, the schema is SQLite-compatible so migrations can be tested locally without a database service:
 
 ```bash
-python3 -m db.migrate --database data/loadstar.db
+python3 -m backend.db.migrate --database data/loadstar.db
 ```
 
 This intentionally creates only:
@@ -143,7 +144,7 @@ The command writes:
 
 The command also upserts one `source_artifacts` row per generated artifact, including the manifest. The OPF artifact is always precomputed; no PyPSA solve runs live in the demo path.
 
-## Build Hourly Carbon And Site Features
+## Build Hourly Carbon, Land, And Site Features
 
 Issue 7 builds optimizer-ready hourly carbon rows. The preferred method accepts an ENTSO-E generation-mix JSON input and multiplies hourly technology generation by documented emissions factors. Without that input, the active local method repeats Ember-style monthly carbon intensity across each hour in the month.
 
@@ -154,7 +155,19 @@ python3 -m backend.pipeline.hourly_carbon \
   --metadata-database data/processed/source_artifacts.db
 ```
 
-Issue 8 builds per-cell ranking features from the subset artifacts and hourly carbon output:
+Issue 9 estimates `buildable_fraction` and `dc_similarity` per subset cell from AlphaEarth embeddings when Earth Engine is configured. Without `--earthengine-project`, it writes a schema-compatible fixture fallback and records held-out labels plus manual-map-check placeholders under `eval/`.
+
+```bash
+python3 -m backend.pipeline.alphaearth_land \
+  --countries SE,DE,IE \
+  --output-dir data/processed/subset \
+  --eval-dir eval \
+  --metadata-database data/processed/source_artifacts.db
+```
+
+With Earth Engine access, pass `--earthengine-project <project-id>`. The live path uses `GOOGLE/SATELLITE_EMBEDDING/V1/ANNUAL`, deterministic label splits, and Random Forest models seeded with the pipeline seed.
+
+Issue 8 builds per-cell ranking features from the subset artifacts, hourly carbon output, and the AlphaEarth land artifact when present:
 
 ```bash
 python3 -m backend.pipeline.feature_engineering \
@@ -164,7 +177,7 @@ python3 -m backend.pipeline.feature_engineering \
   --metadata-database data/processed/source_artifacts.db
 ```
 
-The feature artifact writes `site_features_subset.json` with complete searchable-cell fields, normalized score inputs, map overlay values, congestion blend components, and explicit missing-data flags for fallback sources.
+The feature artifact writes `site_features_subset.json` with complete searchable-cell fields, normalized score inputs, map overlay values, congestion blend components, AlphaEarth land values or fixture fallbacks, and explicit missing-data flags.
 
 ## Validation
 
@@ -178,7 +191,7 @@ For a Python-only check while the web dependencies are not installed yet:
 
 ```bash
 python3 -m pytest
-python3 -m pyright api engine backend/pipeline
+python3 -m pyright backend/api backend/engine backend/pipeline
 ```
 
 The current tests cover:
@@ -190,12 +203,14 @@ The current tests cover:
 - applying the four-table schema from zero
 - subset ingestion artifacts and source metadata
 - hourly carbon preferred/fallback methods
+- AlphaEarth land fallback artifacts, held-out metrics, and metadata checksums
 - feature engineering normalization and missing-data flags
 
 ## Non-Goals In This Batch
 
 - No full-Europe ingestion yet.
 - No PostGIS service requirement yet.
-- No real AlphaEarth/LightGBM model training yet.
+- No full-Europe AlphaEarth export yet; run the subset path first.
+- No real LightGBM model training yet.
 - No real LP solver yet; the optimizer response is a plausible fixture contract.
 - No Git commits or pushes from the agent.

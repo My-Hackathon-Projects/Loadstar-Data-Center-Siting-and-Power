@@ -2,6 +2,7 @@ import json
 import sqlite3
 from pathlib import Path
 
+from backend.pipeline.alphaearth_land import run_alphaearth_land_model
 from backend.pipeline.feature_engineering import run_feature_engineering
 from backend.pipeline.hourly_carbon import run_hourly_carbon_ingestion
 from backend.pipeline.subset_ingestion import run_subset_ingestion
@@ -20,6 +21,13 @@ def test_feature_engineering_outputs_complete_subset_features(tmp_path: Path) ->
         output_dir=output_dir,
         metadata_database=metadata_database,
     )
+    land_result = run_alphaearth_land_model(
+        countries="SE,DE,IE",
+        output_dir=output_dir,
+        eval_dir=tmp_path / "eval",
+        metadata_database=metadata_database,
+        earthengine_project=None,
+    )
 
     result = run_feature_engineering(
         countries="SE,DE,IE",
@@ -29,6 +37,11 @@ def test_feature_engineering_outputs_complete_subset_features(tmp_path: Path) ->
     )
 
     payload = json.loads(result.output_path.read_text(encoding="utf-8"))
+    land_payload = json.loads(land_result.output_path.read_text(encoding="utf-8"))
+    land_by_cell = {
+        record["cell_id"]: record
+        for record in land_payload["records"]
+    }
     # FEATURE_COLLECTION holds 10 fixture sites across SE, DE, IE (4+3+3).
     assert result.record_count == 10
     assert payload["normalization"]["method"] == "percentile_clipping"
@@ -62,6 +75,10 @@ def test_feature_engineering_outputs_complete_subset_features(tmp_path: Path) ->
         assert required_fields.issubset(record)
         assert record["carbon_method_visible"] == "ember_monthly_repeat"
         assert record["missing_data_flags"]["entsoe_hourly_generation_mix"] is True
+        assert record["missing_data_flags"]["alphaearth_land"] is True
+        assert record["source_methods"]["land"] == "fixture_land_proxy"
+        assert record["buildable_fraction"] == land_by_cell[record["cell_id"]]["buildable_fraction"]
+        assert record["dc_similarity"] == land_by_cell[record["cell_id"]]["dc_similarity"]
         assert all(0 <= value <= 1 for value in record["normalized_score_inputs"].values())
         assert all(0 <= value <= 1 for value in record["map_overlay_values"].values())
 
