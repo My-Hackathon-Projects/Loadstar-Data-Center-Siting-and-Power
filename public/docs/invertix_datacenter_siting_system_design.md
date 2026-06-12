@@ -6,7 +6,7 @@
 
 ## 0. Executive Summary
 
-**Loadstar** is a decision support system for siting and powering AI data centers in Europe. Given a facility size in MW, it ranks candidate locations across price, carbon, grid headroom, and connectivity; optimizes the power supply mix (grid, PPA, on-site generation, storage) for any chosen site as a linear program with a cost vs carbon Pareto frontier; and exposes everything through a map with toggleable overlays and a conversational agent whose every number is grounded in the quantitative engine. Data foundations: PyPSA-Eur (grid topology and congestion), Ember (hourly prices and carbon intensity), OpenStreetMap (substations, exchanges, water, exclusions), AlphaEarth satellite embeddings (land suitability and a learned siting model), and the IEA Energy and AI report (assumptions and agent grounding). Heavy computation is precomputed offline; serving is light, cached, and stateless, which is the core of the scaling story.
+**Loadstar** is a decision support system for siting and powering AI data centers in Europe. Given a facility size in MW, it ranks candidate locations across price, carbon, grid headroom, and connectivity; optimizes the power supply mix (grid, PPA, on-site generation, storage) for any chosen site as a linear program with a cost vs carbon Pareto frontier; and exposes everything through a map with toggleable overlays and a conversational agent whose every number is grounded in the quantitative engine. Data foundations follow the official pointers table one to one: the PyPSA-Eur prebuilt OSM network (Zenodo record 18619025) for the grid, Ember for prices, carbon, clean power share and grid congestion (the Grids for Data Centres in Europe work), OpenStreetMap for existing data centers and substations, ITU Transmission Networks (BBmaps) for the fiber connectivity proxy, AlphaEarth satellite embeddings for land suitability and the learned siting model, and the IEA Energy and AI report for PUE and load factor assumptions plus agent grounding. Heavy computation is precomputed offline; serving is light, cached, and stateless, which is the core of the scaling story.
 
 The name: a lodestar is the star you navigate by, and a data center is, to the grid, a load. Loadstar is the star you navigate large loads by.
 
@@ -22,13 +22,15 @@ The prompt has three explicit deliverables hidden in the "Worth Exploring" secti
 2. **Supply mix planning.** For a chosen site, plan a mix of grid power, Power Purchase Agreements (PPAs), and on-site generation, optimized against cost and carbon.
 3. **Spatial overlay.** Combine capacity, prices, carbon, and congestion into map layers that visually separate good sites from bad sites.
 
-The phrase "help someone reason about where to build" is important. They do not want a black box that prints one coordinate. They want a decision support tool: rankings, explanations, trade-off curves, and an interface a non-expert can interrogate. This is why a conversational agent layer on top of a quantitative engine is the right shape.
+The full brief also publishes a pointers table that maps each data need to a specific source: PyPSA-Eur prebuilt OSM network (Zenodo 18619025) for the European power grid, Ember European electricity prices and costs for prices, Ember Electricity Data Explorer for carbon and clean power share, Ember Grids for Data Centres for congestion, OpenStreetMap for existing data centers, ITU Transmission Networks (BBmaps) as the connectivity proxy, and IEA Energy and AI for typical PUE and load factors. Treat this table as the second half of the rubric: judges chose these sources deliberately, so the architecture should consume every one of them and you should be able to say where each appears in the system. The challenge sits in Invertix's "AI for renewable energy operations" track, so when two framings are equally valid, lean toward the clean energy one.
+
+The phrase "help someone reason through where to build" is important. They do not want a black box that prints one coordinate. They want a decision support tool: rankings, explanations, trade-off curves, and an interface a non-expert can interrogate. This is why a conversational agent layer on top of a quantitative engine is the right shape.
 
 ### 1.2 Domain context you must be able to speak to in the interview
 
 - AI is driving unprecedented load growth. The IEA projects global data center electricity consumption roughly doubling to about 945 TWh by 2030, just under 3% of global electricity. Data center demand grew 17% in 2025 while total electricity demand grew only 3%.
 - The binding constraint has flipped. Historically latency and fiber decided siting. Now power availability is the gating factor. Land, fiber, and water still matter but are secondary to securing firm, scalable, ideally clean power.
-- Concentration creates congestion. About half of US data centers under development sit in pre-existing clusters (Northern Virginia is the canonical example; Dublin and Frankfurt are the European equivalents). Clustering raises local grid bottleneck risk, drives up connection queue times, and pushes prices in those zones.
+- Concentration creates congestion. About half of US data centers under development sit in pre-existing clusters (Northern Virginia is the canonical example; Dublin and Frankfurt are the European equivalents). Clustering raises local grid bottleneck risk, drives up connection queue times, and pushes prices in those zones. Ember's Grids for Data Centres in Europe report (June 2025) gives you the European specifics to quote: Dublin is under a de facto moratorium on new data centers until 2028; Frankfurt and Amsterdam face similar constraints; Italy's TSO Terna had about 30 GW of data center connection requests in queue by end of 2024, equivalent to roughly 40% of Italian peak demand; average data center grid applications now exceed 140 MW; and the FLAP-D share of European capacity is projected to fall to about 55% by 2030 and 51% by 2035 as developers move to where grids have room. That migration is exactly the behavior your system models.
 - Supply mix reality. Grid power dominates today. Renewables are the fastest growing source for data centers (roughly 22% annual growth 2024 to 2030, covering about half of demand growth), much of it via PPAs. Gas and on-site generation fill firm capacity gaps, and on-site batteries are becoming critical because AI training loads have fast, large power swings.
 - The four-way trade-off in the prompt:
   - **Price**: wholesale electricity price varies enormously across Europe (Nordics and Iberia cheap, Germany and Ireland expensive).
@@ -55,7 +57,7 @@ An open optimization model of the European energy system at transmission network
 - Renewable resource quality: capacity factor time series per region tell you how good an on-site or nearby PPA solar/wind project would be.
 - The supply mix optimizer itself: PyPSA the framework (not the full Eur model) is the cleanest way to formulate the single-site dispatch and investment LP.
 
-**Critical hackathon warning:** building PyPSA-Eur from raw data takes hours and tens of GB. Do not do it live. Use the prebuilt network files published on Zenodo (there is a prebuilt OSM-based electricity network for PyPSA-Eur), or pre-solve a clustered network (for example 50 to 100 nodes) before the event and ship the solved NetCDF file with your repo.
+**Critical hackathon warning:** building PyPSA-Eur from raw data takes hours and tens of GB. Do not do it live. Use the prebuilt OSM-based network the brief itself points to, Zenodo record 18619025, then pre-solve a clustered network (for example 50 to 100 nodes) before the event and ship the solved NetCDF file with your repo.
 
 ### 2.2 Ember data
 
@@ -65,6 +67,7 @@ An energy think tank publishing fully open (CC-BY-4.0) electricity data with a f
 - Price layer: average and hourly day-ahead prices per bidding zone. This is the "price" axis of the trade-off.
 - Carbon layer: carbon intensity (gCO2/kWh) per country, yearly and monthly. This is the "carbon" axis.
 - Hourly price and a derived hourly carbon intensity series are the inputs to the supply mix LP (you optimize against 8760 hourly values, not one annual average).
+- Congestion layer: the brief explicitly points to Ember Grids for Data Centres. This is Ember's June 2025 Grids for Data Centres in Europe report plus their open grid data work (a cross-border transmission capacity and flows tool, and research on hosting capacity maps). Extract the hub-level congestion assessments (Dublin moratorium, Frankfurt and Amsterdam constraints, Terna queue volumes, country grid readiness narratives) into a structured per-country and per-hub congestion layer. Combine it with the PyPSA-Eur OPF line loadings for spatial resolution: Ember gives you the validated real-world signal at hub level, the OPF gives you the within-country gradient. Cite Ember as the primary congestion source since the organizers chose it.
 
 ### 2.3 OpenStreetMap
 
@@ -72,10 +75,10 @@ Queried through the Overpass API or regional extracts from Geofabrik.
 
 **What you use it for:**
 - Substations and lines: `power=substation`, `power=line` with voltage tags. Distance to the nearest high voltage substation is a first-order proxy for connection cost and time.
-- Connectivity: `telecom=*` features, internet exchange points, and major cities as fiber proxies. Honest framing: OSM fiber data is sparse, so use distance to internet exchange points and metro areas as the connectivity proxy and say so.
+- Connectivity supplements: internet exchange points and major metros as secondary connectivity signals. The primary fiber source is now ITU BBmaps (Section 2.6), which the brief names directly; OSM no longer has to carry the connectivity axis alone.
 - Water: rivers and lakes for cooling water access.
 - Exclusions: protected areas, airports, dense residential land use, floodplains.
-- Existing data centers: `building=data_center` and `telecom=data_center` tags give you positive training labels for the ML model.
+- Existing data centers: `building=data_center` and `telecom=data_center` tags give you positive training labels for the ML model. The brief lists OSM specifically as the source for existing data centers, so this labeling role is officially sanctioned; say so when explaining the ML training setup.
 
 ### 2.4 IEA Energy and AI report
 
@@ -92,9 +95,15 @@ A DeepMind geospatial foundation model. Google ran it at planetary scale and pub
 
 This is the differentiator. Most teams will do a weighted scoring map. Very few will use a geospatial foundation model correctly. Earth Engine has a free non-commercial tier; register a project before the hackathon.
 
-### 2.6 One additional source worth adding
+### 2.6 ITU Transmission Networks (BBmaps)
 
-ENTSO-E Transparency Platform (free API key) for cross-border physical flows and zonal load if you want a live congestion feel. Ember already repackages the prices, so this is optional. Electricity Maps has hourly carbon intensity per zone but the free tier is limited; Ember monthly carbon intensity plus an hourly approximation from the generation mix is sufficient and fully open.
+The brief names this as the connectivity proxy, and it is a substantial upgrade over inferring fiber from OSM. The ITU Broadband Mapping programme maps terrestrial backbone connectivity (optical fiber and microwave links) worldwide: in Europe alone it covers about 141 operators, with node locations, transmission line geometries, and capacity indicators, validated with regulators and operators. Data is exposed through WMS services and a geospatial catalogue at bbmaps.itu.int.
+
+**What you use it for:** distance from each candidate cell to the nearest fiber backbone node and to the nearest backbone line becomes the primary connectivity feature, with IXP distance from OSM as a secondary signal. Practical notes: access may require registration, the WMS interface is built for visualization rather than bulk download, so plan the extraction before the event (WMS GetFeatureInfo, the catalogue's downloadable layers, or rasterizing the WMS layer and computing distance transforms all work). Validation coverage varies by country, which goes in the limitations list, but it is the best open pan-European fiber dataset and it is the one the organizers chose.
+
+### 2.7 One additional source worth adding
+
+ENTSO-E Transparency Platform (free API key) for zone-level day-ahead prices in multi-zone countries, cross-border physical flows, and hourly generation mix for the carbon series. Electricity Maps has hourly carbon intensity per zone but the free tier is limited; Ember plus an ENTSO-E generation mix approximation is sufficient and fully open.
 
 ---
 
@@ -105,7 +114,7 @@ ENTSO-E Transparency Platform (free API key) for cross-border physical flows and
 **One sentence:** A decision support system that, for a data center of any given size, ranks European locations on price, carbon, grid headroom, and connectivity, optimizes the power supply mix for any chosen site, and lets the user interrogate every recommendation through a map and a conversational agent.
 
 **The demo flow you are building toward (rehearse this):**
-1. User types or says: "I want to build a 200 MW AI training campus in Europe. Carbon matters more than latency."
+1. User types or says: "I want to build a 280 MW AI training campus in Europe. Carbon matters more than latency." (280 MW is deliberately the kind of number the organizers themselves use when describing the scenario, and it is above the roughly 140 MW average grid application Ember reports, so it stresses the headroom constraint visibly.)
 2. Agent parses requirements, calls the site search tool, and the map highlights the top 10 candidate cells with scores.
 3. User clicks Tier 1 candidate (for example a cell in northern Sweden) and asks "compare this with Frankfurt."
 4. Agent calls the comparison tool and explains: Sweden wins on price (around 30 EUR/MWh vs 80+), carbon (under 30 vs around 350 gCO2/kWh), and grid headroom; Frankfurt wins on fiber (DE-CIX is the largest internet exchange in the world) and latency to users. For a training workload, latency barely matters, so Sweden dominates.
@@ -146,7 +155,9 @@ Every step in that flow maps to one of the three "Worth Exploring" bullets. That
 │  Offline ingestion pipeline (run BEFORE the hackathon):      │
 │  • PyPSA-Eur prebuilt network + solved OPF results           │
 │  • Ember API: hourly prices, carbon intensity, gen mix       │
-│  • OSM/Overpass: substations, lines, IXPs, water, exclusions │
+│  • OSM: substations, data centers, water, exclusions, IXPs   │
+│  • ITU BBmaps: fiber backbone nodes and lines                │
+│  • Ember Grids for Data Centres: hub congestion layer        │
 │  • AlphaEarth embeddings (Earth Engine export per H3 cell)   │
 │  • Renewable capacity factor time series (from PyPSA-Eur     │
 │    cutouts or renewables.ninja)                              │
@@ -166,8 +177,9 @@ Every step in that flow maps to one of the three "Worth Exploring" bullets. That
 | carbon_intensity_g_kwh | Ember | Monthly, averaged; hourly approximation from gen mix |
 | dist_hv_substation_km | OSM | Nearest substation with voltage >= 220 kV |
 | substation_headroom_proxy | PyPSA-Eur | Free capacity at nearest network node after OPF |
-| congestion_index | PyPSA-Eur OPF | Mean loading of lines incident to nearest node, plus nodal price spread vs zonal mean |
-| dist_ixp_km | OSM / PeeringDB list | Distance to nearest internet exchange point |
+| congestion_index | Ember Grids for Data Centres + PyPSA-Eur OPF | Hub and country level signal from Ember (moratoria, queue pressure, grid readiness) blended with mean loading of lines incident to the nearest node and nodal price spread vs zonal mean |
+| dist_fiber_km | ITU BBmaps | Distance to nearest fiber backbone node and line; the brief's designated connectivity proxy |
+| dist_ixp_km | OSM / PeeringDB list | Distance to nearest internet exchange point, secondary connectivity signal |
 | latency_proxy_ms | derived | Geodesic distance to nearest of FLAP-D metros × 0.01 ms/km × routing factor 1.5 |
 | solar_cf, wind_cf | PyPSA-Eur cutouts | Mean annual capacity factors |
 | water_dist_km | OSM | Nearest major river or lake |
@@ -211,7 +223,7 @@ Weights default to a sensible profile and are exposed as sliders / agent paramet
 
 This is a linear program per site. Formulate it in PyPSA (a single-bus network) or linopy/PuLP directly. PyPSA is preferable because you can name-drop it credibly and it handles storage dynamics for you.
 
-**Given:** site, load L (MW, assume flat 24/7 at PUE-adjusted draw, for example 200 MW IT × 1.2 PUE = 240 MW; offer a "flexible 10%" toggle), and one representative year of hourly data for that site: grid price p_t (Ember/ENTSO-E), grid carbon intensity c_t, solar capacity factor s_t, wind capacity factor w_t. Construct c_t explicitly rather than hand-waving: take the zone's hourly generation mix from ENTSO-E and multiply each technology's share by a standard emission factor (Ember's methodology document publishes these), or as a coarser fallback repeat Ember's monthly carbon intensity across the hours of each month. Document which method you used in ASSUMPTIONS.md, because hourly carbon is exactly the kind of number a domain judge will probe.
+**Given:** site, load L (MW, assume flat 24/7 at PUE-adjusted draw, for example 280 MW IT × 1.2 PUE = 336 MW; offer a "flexible 10%" toggle), and one representative year of hourly data for that site: grid price p_t (Ember/ENTSO-E), grid carbon intensity c_t, solar capacity factor s_t, wind capacity factor w_t. Construct c_t explicitly rather than hand-waving: take the zone's hourly generation mix from ENTSO-E and multiply each technology's share by a standard emission factor (Ember's methodology document publishes these), or as a coarser fallback repeat Ember's monthly carbon intensity across the hours of each month. Document which method you used in ASSUMPTIONS.md, because hourly carbon is exactly the kind of number a domain judge will probe.
 
 **Decision variables:** grid import g_t; PPA contracted capacities K_wind, K_solar (offtake = K × cf_t at fixed PPA strike price); on-site solar capacity; battery power and energy capacity with charge/discharge variables; optional on-site gas capacity for firmness; curtailment.
 
@@ -233,7 +245,7 @@ A single LLM agent (Claude via API) with tool calling. Do not over-engineer a mu
 
 **Tools (each is just one of your API endpoints):**
 1. `search_sites(power_mw, weights, region_filter, top_k)` → ranked cells with scores and feature breakdown.
-2. `get_site_details(cell_id)` → all features, SHAP explanation, nearest substation and IXP.
+2. `get_site_details(cell_id)` → all features, SHAP explanation, nearest substation and nearest fiber backbone node.
 3. `compare_sites(cell_ids)` → side-by-side table.
 4. `optimize_supply_mix(cell_id, load_mw, carbon_cap?, flexibility?)` → portfolio, costs, dispatch summary, Pareto point.
 5. `lookup_context(query)` → RAG retrieval over the IEA Energy and AI report (and your assumptions doc) for qualitative questions.
@@ -276,9 +288,9 @@ A single LLM agent (Claude via API) with tool calling. Do not over-engineer a mu
 - A golden set of 15 to 20 question-answer pairs (siting, comparison, supply mix, conceptual). Score tool-call correctness (right tool, right arguments) and numeric faithfulness (every number traceable to tool output). Even a manual table of results in the README signals engineering maturity.
 
 ### 5.4 Honest limitations (say these before they ask)
-- Congestion is a proxy from a clustered model, not actual TSO interconnection queue data (which is not open).
+- Congestion blends Ember's hub-level evidence with a clustered OPF proxy; it still is not actual TSO interconnection queue data per substation, which is not open.
 - Carbon intensity is country-level average; nodal marginal emissions would be better.
-- Fiber data in OSM is incomplete; connectivity uses IXP and metro distance proxies.
+- ITU BBmaps fiber coverage and validation completeness vary by country; IXP distance is used as a secondary signal.
 - Land prices, permitting timelines, water rights, and local politics are out of scope; in reality permitting is often the longest pole.
 - PPA prices are modeled at fixed strikes, not live market quotes.
 
@@ -313,7 +325,8 @@ Naming limitations precisely demonstrates domain understanding better than hidin
 
 ### 7.1 Before the hackathon (do as much as the rules allow; data prep is usually allowed)
 1. Register: Ember API key, Google Earth Engine project, ENTSO-E key (optional), Anthropic API key.
-2. Download the PyPSA-Eur prebuilt network; solve a 50 to 100 node clustered OPF once; save line loadings and nodal prices.
+2. Download the PyPSA-Eur prebuilt network (Zenodo 18619025); solve a 50 to 100 node clustered OPF once; save line loadings and nodal prices.
+2b. Extract ITU BBmaps fiber nodes and lines for Europe and precompute per-cell distances; this source has the most awkward access path of the set, so do it first and budget a fallback (IXP distances) if extraction stalls.
 3. Run the ingestion pipeline; commit the per-cell feature Parquet.
 4. Export AlphaEarth per-cell mean embeddings for Europe at res 5 from Earth Engine (one reduceRegions export job).
 5. Curate the positive label list of existing data center sites.
@@ -338,7 +351,7 @@ Naming limitations precisely demonstrates domain understanding better than hidin
 ```
 loadstar/
 ├── data/                  # committed Parquet features, solved OPF NetCDF
-├── pipeline/              # ingestion scripts (ember.py, osm.py, alphaearth.py, pypsa_opf.py)
+├── pipeline/              # ingestion scripts (ember.py, ember_grids.py, osm.py, itu_bbmaps.py, alphaearth.py, pypsa_opf.py)
 ├── ml/                    # train_siting.py, suitability labels, SHAP export
 ├── engine/                # scoring.py, supply_mix.py (PyPSA LP), pareto.py
 ├── api/                   # FastAPI app, routers, agent/ (tools, prompts, grounding)
@@ -353,7 +366,7 @@ loadstar/
 ## 8. Pitch Structure (5 minutes)
 
 1. **Problem (30 s):** AI demand doubling to ~945 TWh by 2030; power has replaced fiber as the binding siting constraint; siting is a four-way trade-off nobody can hold in their head.
-2. **Live demo (3 min):** the exact flow from Section 3. Map overlays → 200 MW carbon-weighted search → Sweden vs Frankfurt comparison with the agent's explanation → supply mix Pareto with the carbon slider.
+2. **Live demo (3 min):** the exact flow from Section 3. Map overlays → 280 MW carbon-weighted search → Sweden vs Frankfurt comparison with the agent's explanation → supply mix Pareto with the carbon slider.
 3. **How it works (60 s):** one architecture slide. Name the stack: PyPSA-Eur for grid and congestion, Ember for hourly prices and carbon, OSM for infrastructure, AlphaEarth embeddings + LightGBM for land and siting, an LP for the portfolio, Claude with grounded tools on top. One sentence on evaluation numbers, one on scaling (precompute heavy, serve light, region = adapter).
 4. **Limitations and roadmap (30 s):** queue data, nodal carbon, permitting. Shows you know where the demo ends and the product begins.
 
