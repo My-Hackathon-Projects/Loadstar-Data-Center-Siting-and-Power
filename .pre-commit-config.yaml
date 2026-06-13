@@ -9,7 +9,7 @@ repos:
     rev: v9.39.1
     hooks:
       - id: eslint
-        files: ^web/src/.*\.(ts|tsx)$
+        files: ^frontend/src/.*\.(ts|tsx)$
         additional_dependencies:
           - eslint@9.39.1
           - "@typescript-eslint/eslint-plugin@8.48.1"
@@ -20,4 +20,4 @@ repos:
     rev: v4.0.0-alpha.8
     hooks:
       - id: prettier
-        files: ^web/.*\.(ts|tsx|js|json|css|html)$
+        files: ^frontend/.*\.(ts|tsx|js|json|css|html)$

@@ -2,7 +2,7 @@
 
 Loadstar is a decision-support product for the Invertix **Data-Center Siting & Power** challenge. It recommends European data-center locations for a requested MW size, explains trade-offs across energy and connectivity constraints, and returns a chart-ready supply-mix optimization response for the selected site.
 
-The current implementation covers issues `#1` through `#12`:
+The current implementation covers issues `#1` through `#13`:
 
 - `public/docs/plan.md` is the canonical build plan.
 - `public/docs/access_decisions.md` records task-zero external source checks and downstream fallback implications.
@@ -13,6 +13,7 @@ The current implementation covers issues `#1` through `#12`:
 - A siting propensity pipeline trains LightGBM viability scores and records SHAP-style explanations, with a deterministic composite fallback when LightGBM is unavailable.
 - Deterministic site scoring ranks eligible cells with additive score breakdowns for API, UI, and agent explanations.
 - A deterministic single-site LP optimizer returns a cost/carbon Pareto frontier, portfolio, dispatch summary, annual matched clean share, and hourly 24/7 CFE share.
+- Stable FastAPI endpoints expose health, assumptions, layers, search, detail, comparison, and supply optimization with typed responses, cache keys, and structured errors.
 
 ## Repository Layout
 
@@ -56,10 +57,10 @@ Start the API:
 python3 -m uvicorn backend.api.main:app --reload
 ```
 
-Start the web app in another shell:
+Start the frontend app in another shell:
 
 ```bash
-npm --prefix frontend run dev
+make frontend-dev
 ```
 
 Then open the Vite URL printed by npm, normally:
@@ -78,6 +79,12 @@ GET  /sites/{cell_id}
 POST /sites/compare
 POST /optimize/supply-mix
 GET  /assumptions
+```
+
+Successful deterministic API responses include a `cache_key` field. Unknown layers or site cells return a structured error body:
+
+```json
+{"detail": {"code": "site_not_found", "message": "Unknown site cell: <cell_id>"}}
 ```
 
 Example search:
@@ -99,6 +106,16 @@ curl -sS http://127.0.0.1:8000/optimize/supply-mix \
 ```
 
 The optimizer solves a 24-hour single-site LP with grid import, wind and solar PPAs, on-site solar, battery charge/discharge, curtailment, optional backup, hourly energy balance, grid headroom, storage state of charge, and optional carbon caps. The response includes `recommended_portfolio`, `dispatch_summary`, 24 hourly `dispatch_preview` rows, `annual_matched_clean_share`, `hourly_24_7_cfe_share`, and an 8-12 point `pareto_frontier`.
+
+## Frontend API Types
+
+Frontend API types are generated from the FastAPI OpenAPI schema into `frontend/src/types/openapi.ts`. Start the API first, then run:
+
+```bash
+make frontend-types
+```
+
+`frontend/src/types/api.ts` re-exports aliases from the generated schema so UI code does not hand-maintain OpenAPI-derived shapes.
 
 ## Task-Zero Access Checks
 
@@ -215,7 +232,7 @@ make typecheck
 make test
 ```
 
-For a Python-only check while the web dependencies are not installed yet:
+For a Python-only check while the frontend dependencies are not installed yet:
 
 ```bash
 python3 -m pytest
@@ -228,6 +245,7 @@ The current tests cover:
 - deterministic additive site scoring and score explanations
 - fixture response shape
 - detail and optimizer contracts
+- OpenAPI schemas, deterministic response cache keys, and structured API errors
 - optimizer energy balance, storage bounds, carbon caps, and spiky training load shape
 - access decision fallback behavior
 - applying the four-table schema from zero

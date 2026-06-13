@@ -5,11 +5,32 @@ Single source of truth for every request and response shape exposed at
 `SiteFeature` from here so ingestion cannot drift from the API.
 """
 
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
 from backend.engine.assumptions import DEFAULT_WEIGHTS
+
+
+class ApiErrorDetail(BaseModel):
+    code: str
+    message: str
+
+
+class ApiErrorResponse(BaseModel):
+    detail: ApiErrorDetail
+
+
+class HealthResponse(BaseModel):
+    status: Literal["ok"] = "ok"
+    data_mode: str
+    cache_key: str
+
+
+class AssumptionsResponse(BaseModel):
+    data_mode: str
+    cache_key: str
+    assumptions: dict[str, Any]
 
 
 class SiteFeature(BaseModel):
@@ -57,11 +78,13 @@ class LayerFeature(BaseModel):
 
 class LayerResponse(BaseModel):
     type: Literal["FeatureCollection"] = "FeatureCollection"
+    cache_key: str = ""
     features: list[LayerFeature]
 
 
 class SiteDetailResponse(BaseModel):
     data_mode: Literal["fixture"] = "fixture"
+    cache_key: str = ""
     site: SiteFeature
 
 
@@ -107,6 +130,7 @@ class RankedSite(BaseModel):
 
 class SearchResponse(BaseModel):
     data_mode: Literal["fixture"] = "fixture"
+    cache_key: str = ""
     requested_power_mw: float
     workload_type: str
     warnings: list[ScaleWarning]
@@ -119,6 +143,7 @@ class CompareRequest(BaseModel):
 
 class CompareResponse(BaseModel):
     data_mode: Literal["fixture"] = "fixture"
+    cache_key: str = ""
     sites: list[SiteFeature]
 
 
@@ -144,6 +169,7 @@ class ParetoPoint(BaseModel):
 
 class SupplyMixResponse(BaseModel):
     data_mode: Literal["fixture"] = "fixture"
+    cache_key: str = ""
     cell_id: str
     load_mw: float
     load_profile: str

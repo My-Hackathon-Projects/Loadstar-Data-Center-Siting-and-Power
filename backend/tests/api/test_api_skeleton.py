@@ -8,7 +8,19 @@ client = TestClient(app)
 def test_health_reports_fixture_mode() -> None:
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok", "data_mode": "fixture"}
+    payload = response.json()
+    assert payload["status"] == "ok"
+    assert payload["data_mode"] == "fixture"
+    assert payload["cache_key"].startswith("health:")
+
+
+def test_assumptions_returns_typed_contract_with_cache_key() -> None:
+    response = client.get("/assumptions")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["data_mode"] == "fixture"
+    assert payload["cache_key"].startswith("assumptions:")
+    assert "optimizer" in payload["assumptions"]
 
 
 def test_search_uses_real_site_feature_shape_and_filters_by_headroom() -> None:
@@ -19,6 +31,7 @@ def test_search_uses_real_site_feature_shape_and_filters_by_headroom() -> None:
     assert response.status_code == 200
     payload = response.json()
     assert payload["requested_power_mw"] == 280
+    assert payload["cache_key"].startswith("sites.search:")
     assert payload["warnings"] == []
     assert payload["results"]
 
@@ -79,13 +92,44 @@ def test_openapi_exposes_score_explanation_contract() -> None:
     assert "ScoreExplanation" in schema["components"]["schemas"]
 
 
+def test_openapi_exposes_core_endpoint_contracts() -> None:
+    schema = app.openapi()
+
+    for path, method in {
+        "/health": "get",
+        "/layers/{layer_name}": "get",
+        "/sites/search": "post",
+        "/sites/{cell_id}": "get",
+        "/sites/compare": "post",
+        "/optimize/supply-mix": "post",
+        "/assumptions": "get",
+    }.items():
+        assert path in schema["paths"]
+        assert method in schema["paths"][path]
+
+    components = schema["components"]["schemas"]
+    assert "HealthResponse" in components
+    assert "AssumptionsResponse" in components
+    assert "ApiErrorResponse" in components
+    for response_schema in (
+        "LayerResponse",
+        "SearchResponse",
+        "SiteDetailResponse",
+        "CompareResponse",
+        "SupplyMixResponse",
+    ):
+        assert "cache_key" in components[response_schema]["properties"]
+
+
 def test_detail_and_optimizer_complete_demo_contract() -> None:
     search_payload = client.post("/sites/search", json={"power_mw": 280, "top_k": 1}).json()
     cell_id = search_payload["results"][0]["site"]["cell_id"]
 
     detail = client.get(f"/sites/{cell_id}")
     assert detail.status_code == 200
-    assert detail.json()["site"]["cell_id"] == cell_id
+    detail_payload = detail.json()
+    assert detail_payload["site"]["cell_id"] == cell_id
+    assert detail_payload["cache_key"].startswith("sites.detail:")
 
     optimize = client.post(
         "/optimize/supply-mix",
@@ -94,6 +138,7 @@ def test_detail_and_optimizer_complete_demo_contract() -> None:
     assert optimize.status_code == 200
     payload = optimize.json()
     assert payload["cell_id"] == cell_id
+    assert payload["cache_key"].startswith("optimize.supply_mix:")
     assert payload["solver_status"] == "optimal"
     assert 8 <= len(payload["pareto_frontier"]) <= 12
     assert payload["dispatch_summary"]["total_load_mwh"] > 0
@@ -124,6 +169,7 @@ def test_compare_sites() -> None:
     )
     assert response.status_code == 200
     payload = response.json()
+    assert payload["cache_key"].startswith("sites.compare:")
     assert [site["region_name"] for site in payload["sites"]] == ["Lulea / Boden", "Frankfurt West"]
 
 
@@ -133,6 +179,7 @@ def test_layer_composite_score_returns_geojson_with_computed_value() -> None:
     assert response.status_code == 200
     payload = response.json()
     assert payload["type"] == "FeatureCollection"
+    assert payload["cache_key"].startswith("layers:")
     assert payload["features"]
     for feature in payload["features"]:
         assert feature["properties"]["layer_name"] == "composite_score"
@@ -146,9 +193,45 @@ def test_layer_raw_field_returns_geojson() -> None:
     assert response.status_code == 200
     payload = response.json()
     assert payload["features"]
+    assert payload["cache_key"].startswith("layers:")
     assert payload["features"][0]["properties"]["layer_name"] == "mean_price_eur_mwh"
 
 
 def test_layer_unknown_name_404s() -> None:
     response = client.get("/layers/not_a_layer")
     assert response.status_code == 404
+    assert response.json() == {
+        "detail": {
+            "code": "layer_not_found",
+            "message": "Unknown layer: not_a_layer",
+        }
+    }
+
+
+def test_unknown_site_errors_are_clear_and_structured() -> None:
+    detail = client.get("/sites/not-a-cell")
+    compare = client.post(
+        "/sites/compare",
+        json={"cell_ids": ["851f25d7fffffff", "not-a-cell"]},
+    )
+    optimize = client.post(
+        "/optimize/supply-mix",
+        json={"cell_id": "not-a-cell", "load_mw": 280, "load_profile": "flat_24_7"},
+    )
+
+    for response in (detail, compare, optimize):
+        assert response.status_code == 404
+        payload = response.json()
+        assert payload["detail"]["code"] == "site_not_found"
+        assert payload["detail"]["message"] == "Unknown site cell: not-a-cell"
+
+
+def test_cache_keys_are_stable_for_deterministic_requests() -> None:
+    payload = {"power_mw": 280, "workload_type": "training", "top_k": 5}
+
+    first = client.post("/sites/search", json=payload).json()["cache_key"]
+    second = client.post("/sites/search", json=payload).json()["cache_key"]
+    changed = client.post("/sites/search", json={**payload, "top_k": 4}).json()["cache_key"]
+
+    assert first == second
+    assert first != changed

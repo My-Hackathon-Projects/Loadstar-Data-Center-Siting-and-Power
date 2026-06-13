@@ -5,6 +5,9 @@ on:
   push:
     branches: [main]
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 jobs:
   lint-typecheck-test:
     runs-on: ubuntu-latest
@@ -20,6 +23,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: python -m pip install -r requirements.txt
       - run: npm --prefix frontend ci
+      - run: npm --prefix frontend run generate:types
       - run: make lint
       - run: make typecheck
       - run: make test

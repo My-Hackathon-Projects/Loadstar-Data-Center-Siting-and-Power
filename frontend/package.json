@@ -1,5 +1,5 @@
 {
-  "name": "loadstar-web",
+  "name": "loadstar-frontend",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -11,7 +11,8 @@
     "format": "prettier --check .",
     "typecheck": "tsc -b",
     "test": "vitest run",
-    "generate:types": "openapi-typescript http://127.0.0.1:8000/openapi.json -o src/types/openapi.ts"
+    "generate:openapi": "cd .. && python3 -m backend.api.openapi_schema --output frontend/src/types/openapi.json",
+    "generate:types": "npm run generate:openapi && openapi-typescript src/types/openapi.json -o src/types/openapi.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.0.0",

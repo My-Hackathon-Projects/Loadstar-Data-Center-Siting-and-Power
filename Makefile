@@ -1,4 +1,4 @@
-.PHONY: setup dev web-dev lint format typecheck test migrate pipeline-subset ingest-subset carbon-subset alphaearth-land-subset features-subset siting-model-subset
+.PHONY: setup dev frontend-dev web-dev frontend-types lint format typecheck test migrate pipeline-subset ingest-subset carbon-subset alphaearth-land-subset features-subset siting-model-subset
 
 setup:
 	python3 -m pip install -r requirements.txt
@@ -7,8 +7,13 @@ setup:
 dev:
 	python3 -m uvicorn backend.api.main:app --reload
 
-web-dev:
+frontend-dev:
 	npm --prefix frontend run dev
+
+web-dev: frontend-dev
+
+frontend-types:
+	npm --prefix frontend run generate:types
 
 lint:
 	python3 -m ruff check backend
