@@ -31,6 +31,9 @@ This file is the single source for numeric assumptions used by the skeleton, lat
 | Connectivity weight | `0.10` | ITU BBmaps pointer | Important, but less dominant for AI training workloads than inference. |
 | Land suitability weight | `0.08` | AlphaEarth plan | Keeps land feasibility in the transparent score. |
 | ML viability weight | `0.08` | LightGBM siting plan | Preserves model signal without hiding explicit trade-offs. |
+| Search score normalization | 5th/95th percentile clipping | Issue 14 refactor | Keeps live search scoring aligned with feature-engineering artifacts and limits outlier dominance. |
+| Missing score input | `0` | Issue 14 refactor | Missing or non-finite values should not inflate a candidate score. |
+| Degenerate score range | `1` | Issue 14 refactor | If all eligible candidates tie on a field, that field should not penalize any candidate. |
 
 ## Optimizer Defaults
 

@@ -1,7 +1,7 @@
 """HTTP wrapper around engine.optimizer for the supply-mix endpoint."""
 
+from backend.api.repositories.site_repository import site_repository
 from backend.engine.contracts import OptimizeRequest, SupplyMixResponse
-from backend.engine.fixtures import get_site
 from backend.engine.optimizer import optimize_supply_mix
 
 from .cache_keys import build_cache_key
@@ -10,7 +10,7 @@ from .cache_keys import build_cache_key
 def optimize_site_supply(request: OptimizeRequest) -> SupplyMixResponse:
     """Optimize the fixture power supply mix for a selected site."""
 
-    site = get_site(request.cell_id)
+    site = site_repository.get_site(request.cell_id)
     if site is None:
         raise KeyError(f"Unknown site cell: {request.cell_id}")
     response = optimize_supply_mix(site, request)

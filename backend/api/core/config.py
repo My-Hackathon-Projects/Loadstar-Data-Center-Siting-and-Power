@@ -21,7 +21,12 @@ class Settings(BaseSettings):
     """Runtime settings shared by the API and the pipeline CLIs."""
 
     app_name: str = "Loadstar API"
+    api_environment: str = "development"
     data_mode: str = "fixture"
+    logging_level: str = "INFO"
+    cors_origins: list[str] = Field(
+        default_factory=lambda: ["http://127.0.0.1:5173", "http://localhost:5173"],
+    )
 
     # SQLite is the dev default; set DATABASE_URL in `.env` to a Postgres DSN
     # such as `postgresql+psycopg://loadstar:loadstar@localhost:5432/loadstar`

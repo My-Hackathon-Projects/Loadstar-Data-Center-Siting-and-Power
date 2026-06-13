@@ -1,5 +1,12 @@
 import { create } from "zustand";
 
+import {
+  DEFAULT_ACTIVE_LAYER,
+  DEFAULT_DEMO_POWER_MW,
+  DEFAULT_LOAD_PROFILE,
+  DEFAULT_SEARCH_TOP_K,
+  DEFAULT_WORKLOAD_TYPE,
+} from "../config/defaults";
 import type { MapLayerName } from "../features/map/mapLayers";
 import type { OptimizeRequest, SearchRequest } from "../types/api";
 
@@ -36,11 +43,11 @@ interface UiState {
 export const useUiStore = create<UiState>((set) => ({
   selectedCellId: null,
   comparisonCellIds: [],
-  activeLayer: "composite_score",
-  powerMw: 280,
-  workloadType: "training",
-  topK: 8,
-  loadProfile: "flat_24_7",
+  activeLayer: DEFAULT_ACTIVE_LAYER,
+  powerMw: DEFAULT_DEMO_POWER_MW,
+  workloadType: DEFAULT_WORKLOAD_TYPE,
+  topK: DEFAULT_SEARCH_TOP_K,
+  loadProfile: DEFAULT_LOAD_PROFILE,
   clearComparison: () => set({ comparisonCellIds: [] }),
   setActiveLayer: (layerName) => set({ activeLayer: layerName }),
   setSelectedCellId: (cellId) => set({ selectedCellId: cellId }),

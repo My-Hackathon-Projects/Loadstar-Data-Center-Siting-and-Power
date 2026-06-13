@@ -1,13 +1,9 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 
-import {
-  compareSites,
-  getAssumptions,
-  getLayer,
-  getSite,
-  optimizeSupplyMix,
-  searchSites,
-} from "./api";
+import { getAssumptions } from "../api/assumptions";
+import { getLayer } from "../api/layers";
+import { optimizeSupplyMix } from "../api/optimization";
+import { compareSites, getSite, searchSites } from "../api/sites";
 import type {
   CompareRequest,
   OptimizeRequest,

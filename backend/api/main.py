@@ -3,18 +3,29 @@
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from backend.api.core.config import get_settings
+from backend.api.core.logging import configure_logging
 from backend.api.routers import meta, optimizer, sites
 
 settings = get_settings()
+configure_logging(settings.logging_level)
 app = FastAPI(
     title=settings.app_name,
     version="0.1.0",
     description="Fixture-backed walking skeleton for data-center siting and power planning.",
 )
+if settings.cors_origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_credentials=False,
+        allow_headers=["*"],
+        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_origins=settings.cors_origins,
+    )
 
 app.include_router(meta.router)
 app.include_router(sites.router)

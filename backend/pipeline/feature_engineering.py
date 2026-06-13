@@ -19,6 +19,7 @@ from typing import Annotated, Literal, cast
 import typer
 
 from backend.engine.contracts import SiteFeature
+from backend.engine.normalization import normalize_value, percentile_bounds
 from backend.pipeline.artifacts import (
     ArtifactSummary,
     display_path,
@@ -312,9 +313,10 @@ def _normalized_score_inputs(records: Sequence[dict[str, object]]) -> list[dict[
         for feature in FEATURE_DIRECTIONS
     }
     bounds = {
-        feature: (
-            _percentile(values, CLIP_LOWER_PERCENTILE),
-            _percentile(values, CLIP_UPPER_PERCENTILE),
+        feature: percentile_bounds(
+            values,
+            lower_percentile=CLIP_LOWER_PERCENTILE,
+            upper_percentile=CLIP_UPPER_PERCENTILE,
         )
         for feature, values in values_by_feature.items()
     }
@@ -322,15 +324,13 @@ def _normalized_score_inputs(records: Sequence[dict[str, object]]) -> list[dict[
     for record in records:
         normalized: dict[str, float] = {}
         for feature, direction in FEATURE_DIRECTIONS.items():
-            low, high = bounds[feature]
             value = _required_float(record[feature], feature)
-            if high == low:
-                score = 0.5
-            else:
-                clipped = min(max(value, low), high)
-                score = (clipped - low) / (high - low)
-                if direction == "lower":
-                    score = 1 - score
+            score = normalize_value(
+                value,
+                bounds[feature],
+                lower_is_better=direction == "lower",
+                degenerate_score=0.5,
+            )
             normalized[feature] = round(_clamp01(score), 4)
         normalized_records.append(normalized)
     return normalized_records
@@ -493,21 +493,6 @@ def _minmax(values: dict[str, float]) -> dict[str, float]:
     if high == low:
         return {key: 0.5 for key in values}
     return {key: (value - low) / (high - low) for key, value in values.items()}
-
-
-def _percentile(values: Sequence[float], percentile: float) -> float:
-    if not values:
-        raise ValueError("Cannot compute percentile of an empty sequence.")
-    sorted_values = sorted(values)
-    if len(sorted_values) == 1:
-        return sorted_values[0]
-    position = (len(sorted_values) - 1) * percentile / 100
-    lower_index = int(position)
-    upper_index = min(lower_index + 1, len(sorted_values) - 1)
-    fraction = position - lower_index
-    return sorted_values[lower_index] + (
-        sorted_values[upper_index] - sorted_values[lower_index]
-    ) * fraction
 
 
 def _sites_for_countries(countries: Sequence[str]) -> list[SiteFeature]:

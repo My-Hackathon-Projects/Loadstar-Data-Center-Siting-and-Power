@@ -1,14 +1,3 @@
-import {
-  CartesianGrid,
-  Legend,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-
 import { useUiStore } from "../../hooks/useUiStore";
 import {
   formatCarbon,
@@ -17,6 +6,8 @@ import {
 } from "../../lib/formatters";
 import { useOptimizeSupplyMix } from "../../lib/queries";
 import { dispatchChartRows } from "./optimizerCharts";
+import { portfolioRows, summaryMetric } from "./optimizerSummary";
+import { DispatchChart, ParetoChart } from "./SupplyMixCharts";
 
 export function OptimizerPanel() {
   const loadProfile = useUiStore((state) => state.loadProfile);
@@ -75,89 +66,8 @@ export function OptimizerPanel() {
           {mutation.error.message}
         </p>
       ) : null}
-      <div className="mt-3 h-56 rounded-md border border-slate-200 p-2">
-        <ResponsiveContainer height="100%" width="100%">
-          <LineChart
-            data={result?.pareto_frontier ?? []}
-            margin={{ bottom: 16, left: 8, right: 18, top: 12 }}
-          >
-            <CartesianGrid stroke="#e2e8f0" strokeDasharray="4 4" />
-            <XAxis
-              dataKey="effective_carbon_g_kwh"
-              label={{ position: "insideBottom", value: "Carbon gCO2/kWh" }}
-              tick={{ fontSize: 12 }}
-            />
-            <YAxis
-              dataKey="effective_cost_eur_mwh"
-              label={{ angle: -90, position: "insideLeft", value: "EUR/MWh" }}
-              tick={{ fontSize: 12 }}
-              width={52}
-            />
-            <Tooltip />
-            <Line
-              dataKey="effective_cost_eur_mwh"
-              dot={{ r: 3 }}
-              name="Cost"
-              stroke="#0e7490"
-              strokeWidth={3}
-              type="monotone"
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-      <div className="mt-3 h-56 rounded-md border border-slate-200 p-2">
-        <ResponsiveContainer height="100%" width="100%">
-          <LineChart
-            data={dispatchRows}
-            margin={{ bottom: 16, left: 8, right: 18, top: 12 }}
-          >
-            <CartesianGrid stroke="#e2e8f0" strokeDasharray="4 4" />
-            <XAxis
-              dataKey="hour"
-              label={{ position: "insideBottom", value: "Hour" }}
-              tick={{ fontSize: 12 }}
-            />
-            <YAxis tick={{ fontSize: 12 }} width={52} />
-            <Tooltip />
-            <Legend verticalAlign="top" />
-            <Line
-              dataKey="load"
-              dot={false}
-              name="Load"
-              stroke="#111827"
-              strokeWidth={2}
-            />
-            <Line
-              dataKey="grid"
-              dot={false}
-              name="Grid"
-              stroke="#64748b"
-              strokeWidth={2}
-            />
-            <Line
-              dataKey="clean"
-              dot={false}
-              name="Clean"
-              stroke="#15803d"
-              strokeWidth={2}
-            />
-            <Line
-              dataKey="battery"
-              dot={false}
-              name="Battery"
-              stroke="#c2410c"
-              strokeWidth={2}
-            />
-            <Line
-              dataKey="backup"
-              dot={false}
-              name="Backup"
-              stroke="#be123c"
-              strokeWidth={2}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
+      <ParetoChart points={result?.pareto_frontier ?? []} />
+      <DispatchChart rows={dispatchRows} />
       {result ? (
         <div className="mt-3 space-y-3 text-sm text-slate-600">
           <p>
@@ -180,15 +90,13 @@ export function OptimizerPanel() {
             MWh
           </p>
           <div className="grid grid-cols-2 gap-2">
-            {Object.entries(result.recommended_portfolio).map(
-              ([key, value]) => (
+            {portfolioRows(result.recommended_portfolio).map(
+              ({ key, label, value }) => (
                 <div
                   className="rounded-md border border-slate-200 px-3 py-2"
                   key={key}
                 >
-                  <span className="block text-xs text-slate-500">
-                    {formatPortfolioKey(key)}
-                  </span>
+                  <span className="block text-xs text-slate-500">{label}</span>
                   <span className="text-sm text-slate-900">
                     {formatPercent(value)}
                   </span>
@@ -205,12 +113,4 @@ export function OptimizerPanel() {
       )}
     </section>
   );
-}
-
-function summaryMetric(summary: Record<string, number>, key: string): number {
-  return summary[key] ?? 0;
-}
-
-function formatPortfolioKey(key: string): string {
-  return key.replaceAll("_", " ");
 }

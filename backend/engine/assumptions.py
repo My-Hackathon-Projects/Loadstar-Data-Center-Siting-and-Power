@@ -37,6 +37,13 @@ ASSUMPTIONS: dict[str, Any] = {
         ),
     },
     "scoring_weights": DEFAULT_WEIGHTS,
+    "scoring_normalization": {
+        "method": "percentile_clipping",
+        "lower_percentile": 5,
+        "upper_percentile": 95,
+        "missing_value_score": 0,
+        "degenerate_range_score": 1,
+    },
     "optimizer": {
         "wacc": 0.07,
         "solar_capex_eur_kw": 600,

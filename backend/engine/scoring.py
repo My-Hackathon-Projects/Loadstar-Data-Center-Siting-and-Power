@@ -15,7 +15,8 @@ from backend.engine.contracts import (
     SearchResponse,
     SiteFeature,
 )
-from backend.engine.fixtures import FEATURE_COLLECTION, get_site
+from backend.engine.fixtures import FEATURE_COLLECTION
+from backend.engine.normalization import normalize_value, percentile_bounds
 
 _Direction = Literal["lower_is_better", "higher_is_better", "composite"]
 
@@ -126,16 +127,11 @@ def _scale_warnings(power_mw: float) -> list[ScaleWarning]:
 
 
 def _normalize(values: Sequence[float], value: float, lower_is_better: bool) -> float:
-    low = min(values)
-    high = max(values)
-    if high == low:
-        # Degenerate range: all candidates tie. Return 1.0 (perfect tie) rather
-        # than NaN so downstream weighted sums stay finite.
-        return 1.0
-    normalized = (value - low) / (high - low)
-    if lower_is_better:
-        normalized = 1 - normalized
-    return max(0.0, min(1.0, normalized))
+    return normalize_value(
+        value,
+        percentile_bounds(values),
+        lower_is_better=lower_is_better,
+    )
 
 
 def _field_score(
@@ -193,23 +189,30 @@ def _score_site(
     )
 
 
-def eligible_sites(request: SearchRequest) -> list[SiteFeature]:
+def eligible_sites(
+    request: SearchRequest,
+    sites: Sequence[SiteFeature] | None = None,
+) -> list[SiteFeature]:
     """Return fixture sites that pass country, exclusion, and headroom filters."""
 
     countries = {country.upper() for country in request.country_filter or []}
+    source_sites = FEATURE_COLLECTION if sites is None else sites
     return [
         site
-        for site in FEATURE_COLLECTION
+        for site in source_sites
         if not site.exclusion_flag
         and site.headroom_mw >= request.power_mw
         and (not countries or site.country_code in countries)
     ]
 
 
-def search_sites(request: SearchRequest) -> SearchResponse:
+def search_sites(
+    request: SearchRequest,
+    sites: Sequence[SiteFeature] | None = None,
+) -> SearchResponse:
     """Rank fixture sites using transparent normalized feature scoring."""
 
-    candidates = eligible_sites(request)
+    candidates = eligible_sites(request, sites)
 
     ranked = sorted(
         (_score_site(site, candidates, request) for site in candidates),
@@ -228,16 +231,20 @@ def search_sites(request: SearchRequest) -> SearchResponse:
     )
 
 
-def compare_sites(request: CompareRequest) -> CompareResponse:
+def compare_sites(
+    request: CompareRequest,
+    sites: Sequence[SiteFeature] | None = None,
+) -> CompareResponse:
     """Return fixture sites in the requested comparison order."""
 
-    sites: list[SiteFeature] = []
+    sites_by_id = {site.cell_id: site for site in (FEATURE_COLLECTION if sites is None else sites)}
+    selected_sites: list[SiteFeature] = []
     for cell_id in request.cell_ids:
-        site = get_site(cell_id)
+        site = sites_by_id.get(cell_id)
         if site is None:
             raise KeyError(f"Unknown site cell: {cell_id}")
-        sites.append(site)
-    return CompareResponse(sites=sites)
+        selected_sites.append(site)
+    return CompareResponse(sites=selected_sites)
 
 
 def _assumption_float(value: object) -> float:
