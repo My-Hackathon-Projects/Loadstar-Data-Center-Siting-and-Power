@@ -11,7 +11,7 @@
   "deterministic_seed": 20260612,
   "earthengine_error": null,
   "fallback": "Earth Engine project or package unavailable; using fixture land proxy.",
-  "generated_at": "2026-06-13T02:41:21+00:00",
+  "generated_at": "2026-06-13T09:41:46+00:00",
   "heldout_labels": [
     {
       "buildable_label": 1,
@@ -140,7 +140,7 @@
       "status": "not_performed"
     }
   ],
-  "output_checksum_sha256": "4819b2e56e94718d9cd72ff47b40ae3e88b460e9b1c7a7ab8be81d248a030936",
+  "output_checksum_sha256": "15cb7ac061b16be823c0ff82c003fcca26438e76cfb824ee8da8c1adb4fa3ee4",
   "random_forest": {
     "embedding_band_count": 64,
     "seed": 20260612,

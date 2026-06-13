@@ -8,7 +8,7 @@
     "IE"
   ],
   "deterministic_seed": 20260612,
-  "fallback": "LightGBM unavailable or failed; using transparent composite. Reason: No module named 'lightgbm'",
+  "fallback": "LightGBM unavailable or failed; using transparent composite. Reason: dlopen(/Users/I765601/Library/Python/3.13/lib/python/site-packages/lightgbm/lib/lib_lightgbm.dylib, 0x0006): Library not loaded: @rpath/libomp.dylib\n  Referenced from: <D44045CD-B874-3A27-9A61-F131D99AACE4> /Users/I765601/Library/Python/3.13/lib/python/site-packages/lightgbm/lib/lib_lightgbm.dylib\n  Reason: tried: '/opt/homebrew/opt/libomp/lib/libomp.dylib' (no such file), '/System/Volumes/Preboot/Cryptexes/OS/opt/homebrew/opt/libomp/lib/libomp.dylib' (no such file), '/opt/local/lib/libomp/libomp.dylib' (no such file), '/System/Volumes/Preboot/Cryptexes/OS/opt/local/lib/libomp/libomp.dylib' (no such file), '/opt/homebrew/opt/libomp/lib/libomp.dylib' (no such file), '/System/Volumes/Preboot/Cryptexes/OS/opt/homebrew/opt/libomp/lib/libomp.dylib' (no such file), '/opt/local/lib/libomp/libomp.dylib' (no such file), '/System/Volumes/Preboot/Cryptexes/OS/opt/local/lib/libomp/libomp.dylib' (no such file)",
   "feature_importance": {
     "buildable_fraction": 0.1,
     "carbon_intensity_g_kwh": 0.081818,
@@ -25,7 +25,7 @@
     "water_dist_km": 0.036364,
     "wind_cf": 0.063636
   },
-  "generated_at": "2026-06-13T02:41:21+00:00",
+  "generated_at": "2026-06-13T09:41:53+00:00",
   "label_summary": {
     "negative_count": 15,
     "negative_positive_ratio": 3.0,
@@ -37,7 +37,7 @@
       "osm_known_data_center_proxy"
     ]
   },
-  "model_artifact_checksum_sha256": "446b8dbbe11aa5eea18f0b7adb0ac17ffd71ed157f063a9a5e600c16cac3de53",
+  "model_artifact_checksum_sha256": "d5b64e5d2d20494357afb938c744bbedff254839e6923a0a2335479c0e79e020",
   "precision_at_k": {
     "p@1": 1.0,
     "p@3": 0.6667,

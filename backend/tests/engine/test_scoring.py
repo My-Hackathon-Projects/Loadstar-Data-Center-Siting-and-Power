@@ -88,3 +88,95 @@ def test_scale_band_warnings_are_thresholded() -> None:
     assert [warning.code for warning in search_sites(SearchRequest(power_mw=701)).warnings] == [
         "large_load"
     ]
+
+
+# --- Trained-model wiring: ml + land factors ----------------------------------
+#
+# The `ml` factor must consume `lightgbm_score` (the LightGBM siting model
+# output, weight 0.08 per scoring_engine.md), and the `land` factor must blend
+# `buildable_fraction` and `dc_similarity` from AlphaEarth (also weight 0.08).
+# These tests pin that wiring so a refactor cannot silently swap the field
+# names without a CI signal.
+
+
+def _two_site_fixture(*, lgbm_a: float, lgbm_b: float):
+    """Two cells identical except for `lightgbm_score`. Used to isolate one factor."""
+
+    site_a = FEATURE_COLLECTION[0].model_copy(
+        update={"cell_id": "site-a", "lightgbm_score": lgbm_a}
+    )
+    site_b = FEATURE_COLLECTION[0].model_copy(
+        update={"cell_id": "site-b", "lightgbm_score": lgbm_b}
+    )
+    return [site_a, site_b]
+
+
+def test_ml_factor_consumes_lightgbm_score() -> None:
+    """Higher lightgbm_score → higher ml breakdown score, all else equal."""
+
+    sites = _two_site_fixture(lgbm_a=0.20, lgbm_b=0.95)
+    response = search_sites(SearchRequest(power_mw=1.0, top_k=2), sites)
+
+    by_cell = {r.site.cell_id: r for r in response.results}
+    assert by_cell["site-b"].score_breakdown["ml"] > by_cell["site-a"].score_breakdown["ml"]
+    # The ml raw_value must surface the lightgbm_score; protects against a
+    # future swap to a different field name.
+    ml_explanation = next(
+        e for e in by_cell["site-b"].score_explanations if e.factor == "ml"
+    )
+    assert "ML viability" in ml_explanation.raw_value
+
+
+def test_land_factor_blends_buildable_and_dc_similarity() -> None:
+    """`land` averages buildable_fraction and dc_similarity, both higher-is-better."""
+
+    site_low = FEATURE_COLLECTION[0].model_copy(
+        update={"cell_id": "low-land", "buildable_fraction": 0.10, "dc_similarity": 0.10}
+    )
+    site_high = FEATURE_COLLECTION[0].model_copy(
+        update={"cell_id": "high-land", "buildable_fraction": 0.90, "dc_similarity": 0.90}
+    )
+    response = search_sites(SearchRequest(power_mw=1.0, top_k=2), [site_low, site_high])
+
+    by_cell = {r.site.cell_id: r for r in response.results}
+    high_land = by_cell["high-land"].score_breakdown["land"]
+    low_land = by_cell["low-land"].score_breakdown["land"]
+    assert high_land > low_land
+    land_explanation = next(
+        e for e in by_cell["high-land"].score_explanations if e.factor == "land"
+    )
+    # The composite raw_value must mention both inputs so users can read the
+    # source of the score in the explain panel.
+    assert "buildable" in land_explanation.raw_value
+    assert "data-center similarity" in land_explanation.raw_value
+
+
+def test_default_weights_for_ml_and_land_match_scoring_engine_md() -> None:
+    """scoring_engine.md fixes ml and land weights at 0.08 each. Pin it."""
+
+    assert DEFAULT_WEIGHTS["ml"] == 0.08
+    assert DEFAULT_WEIGHTS["land"] == 0.08
+
+
+def test_ml_weight_propagates_to_contribution() -> None:
+    """Doubling the ml weight doubles the ml contribution."""
+
+    custom_weights = {**DEFAULT_WEIGHTS, "ml": 0.16}
+    response = search_sites(
+        SearchRequest(power_mw=280, top_k=1, weights=custom_weights)
+    )
+    result = response.results[0]
+    assert result.score_contributions["ml"] == round(result.score_breakdown["ml"] * 0.16, 4)
+
+
+def test_land_weight_propagates_to_contribution() -> None:
+    """Doubling the land weight doubles the land contribution."""
+
+    custom_weights = {**DEFAULT_WEIGHTS, "land": 0.16}
+    response = search_sites(
+        SearchRequest(power_mw=280, top_k=1, weights=custom_weights)
+    )
+    result = response.results[0]
+    assert result.score_contributions["land"] == round(
+        result.score_breakdown["land"] * 0.16, 4
+    )

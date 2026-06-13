@@ -2,6 +2,7 @@ import json
 import sqlite3
 from pathlib import Path
 
+from backend.engine.contracts import SiteFeature
 from backend.pipeline.alphaearth_land import run_alphaearth_land_model
 from backend.pipeline.feature_engineering import run_feature_engineering
 from backend.pipeline.hourly_carbon import run_hourly_carbon_ingestion
@@ -85,6 +86,10 @@ def test_feature_engineering_outputs_complete_subset_features(tmp_path: Path) ->
         assert record["dc_similarity"] == land_by_cell[record["cell_id"]]["dc_similarity"]
         assert all(0 <= value <= 1 for value in record["normalized_score_inputs"].values())
         assert all(0 <= value <= 1 for value in record["map_overlay_values"].values())
+        # Pipeline output must satisfy the SiteFeature API contract end-to-end:
+        # the API repository validates each record through this same model,
+        # so a schema drift here would silently bypass the trained values.
+        SiteFeature.model_validate(record)
 
     with sqlite3.connect(metadata_database) as connection:
         row = connection.execute(
