@@ -99,4 +99,18 @@ describe("map layer helpers", () => {
     expect(formatLayerValue("buildable_fraction", 0.72)).toBe("72%");
     expect(formatLayerValue("mean_price_eur_mwh", 34)).toBe("34 EUR/MWh");
   });
+
+  it("formats the curated cooling/water inputs honestly", () => {
+    expect(formatLayerValue("water_dist_km", 3.4)).toBe("3.4 km");
+    expect(formatLayerValue("cooling_degree_proxy", 0.18)).toBe("0.18");
+  });
+
+  it("declares both new layers as lower-is-better", () => {
+    const water = MAP_LAYER_OPTIONS.find((opt) => opt.name === "water_dist_km");
+    const cooling = MAP_LAYER_OPTIONS.find(
+      (opt) => opt.name === "cooling_degree_proxy",
+    );
+    expect(water?.direction).toBe("lower_is_better");
+    expect(cooling?.direction).toBe("lower_is_better");
+  });
 });
