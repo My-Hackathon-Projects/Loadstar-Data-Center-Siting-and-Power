@@ -1,11 +1,13 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 
+import { explainSite } from "../api/agent";
 import { getAssumptions } from "../api/assumptions";
 import { getLayer } from "../api/layers";
 import { optimizeSupplyMix } from "../api/optimization";
 import { compareSites, getSite, searchSites } from "../api/sites";
 import type {
   CompareRequest,
+  ExplainRequest,
   OptimizeRequest,
   SearchRequest,
 } from "../types/api";
@@ -50,5 +52,11 @@ export function useAssumptions() {
 export function useOptimizeSupplyMix() {
   return useMutation({
     mutationFn: (request: OptimizeRequest) => optimizeSupplyMix(request),
+  });
+}
+
+export function useExplainSite() {
+  return useMutation({
+    mutationFn: (request: ExplainRequest) => explainSite(request),
   });
 }

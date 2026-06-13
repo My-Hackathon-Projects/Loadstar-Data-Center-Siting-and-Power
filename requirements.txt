@@ -2,6 +2,7 @@ earthengine-api
 fastapi
 lightgbm
 numpy
+openai>=1.40
 psycopg[binary]
 pydantic
 pydantic-settings

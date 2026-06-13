@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -24,6 +25,9 @@ class Settings(BaseSettings):
     api_environment: str = "development"
     data_mode: str = "fixture"
     logging_level: str = "INFO"
+    # `json` for production parsing, `text` for human-readable demo logs. Set via
+    # `LOG_FORMAT` in `.env`. JSON is the default so request_id correlation works.
+    log_format: Literal["json", "text"] = "json"
     cors_origins: list[str] = Field(
         default_factory=lambda: ["http://127.0.0.1:5173", "http://localhost:5173"],
     )
@@ -32,6 +36,22 @@ class Settings(BaseSettings):
     # such as `postgresql+psycopg://loadstar:loadstar@localhost:5432/loadstar`
     # when the live Postgres switch lands.
     database_url: str = Field(default=f"sqlite:///{ROOT_DIR / 'data' / 'loadstar.db'}")
+
+    # Optional Redis for the result-cache layer. When unset, the optimizer cache
+    # falls back to the in-process LRU. See `backend/api/services/result_cache.py`.
+    redis_url: str | None = None
+
+    # OpenAI integration for the agent/explain endpoint and the chat panel.
+    # `openai_enabled` defaults to False; the chat falls back to the deterministic
+    # template when the flag is off, the key is missing, or the API errors.
+    openai_api_key: str | None = None
+    openai_model: str = "gpt-4o-mini"
+    openai_enabled: bool = Field(default=False, alias="LOADSTAR_LLM_ENABLED")
+
+    # Ember credentials consumed by the access-check CLI. Surfaced here so secrets
+    # live in `Settings`, not in scattered `os.getenv` calls.
+    ember_api_key: str | None = None
+    ember_hourly_price_url: str | None = None
 
     # Where the built Vite bundle lives. The API mounts /assets from here when present.
     web_dist_dir: Path = Field(default=ROOT_DIR / "frontend" / "dist")
@@ -46,6 +66,7 @@ class Settings(BaseSettings):
         env_file=ROOT_DIR / ".env",
         env_file_encoding="utf-8",
         extra="ignore",
+        populate_by_name=True,
     )
 
 

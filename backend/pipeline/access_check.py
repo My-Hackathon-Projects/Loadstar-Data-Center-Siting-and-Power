@@ -19,6 +19,8 @@ from typing import Annotated, Any
 
 import typer
 
+from backend.api.core.config import get_settings
+
 ZENODO_RECORD_URL = "https://zenodo.org/api/records/18619025"
 EMBER_ROOT_URL = "https://api.ember-climate.org"
 ITU_BBMAPS_URL = "https://bbmaps.itu.int"
@@ -184,8 +186,9 @@ def check_itu_bbmaps() -> SourceDecision:
 
 
 def check_ember() -> SourceDecision:
-    hourly_url = os.getenv("EMBER_HOURLY_PRICE_URL")
-    api_key = os.getenv("EMBER_API_KEY")
+    settings = get_settings()
+    hourly_url = settings.ember_hourly_price_url
+    api_key = settings.ember_api_key
     if not hourly_url:
         status, _ = _curl_head(EMBER_ROOT_URL)
         return SourceDecision(

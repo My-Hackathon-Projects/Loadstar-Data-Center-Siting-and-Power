@@ -74,6 +74,42 @@ Technology emissions factors for the preferred ENTSO-E method are stored in each
 | Congestion blend: OPF line loading | `35%` | Issue 8 implementation | Adds local grid stress from the precomputed OPF artifact. |
 | Congestion blend: nodal price spread | `20%` | Issue 8 implementation | Adds economic congestion signal without overwhelming hub/country context. |
 
+## LP Solver
+
+| Knob | Value | Source | Notes |
+|---|---|---|---|
+| Solver | `scipy.optimize.linprog(method="highs")` | `backend/engine/optimizer_model.py` | High-performance interior-point HiGHS implementation; deterministic given the seed. |
+| Decision variables | ~270 | 6 capacity + 11 hourly × 24 hours | Capacity vars: wind, solar PPA, onsite solar, battery power/energy, backup. |
+| Constraints | ~217 | 121 equality + 96 inequality | Energy balance, resource availability, battery dynamics, optional carbon cap. |
+| Solves per request | up to 11 | Issue 12 implementation | 1 recommended portfolio + up to 10 Pareto frontier points. |
+| Optimization horizon | 24 hours | `engine.assumptions.ASSUMPTIONS["optimizer"]` | Representative day; the full-year solve is out of scope for the demo. |
+
+## Deterministic Seed
+
+| Knob | Value | Source | Notes |
+|---|---|---|---|
+| Pipeline seed | `20260612` | `backend/pipeline/constants.py::DETERMINISTIC_SEED` | Anchor date in YYYYMMDD form. Used for every random sample, train/holdout split, and synthetic-record generator across the pipeline. |
+
+## ML and External-Source Fallbacks
+
+- **AlphaEarth (Issue 9):** when `EARTHENGINE_PROJECT` is unset or the
+  Earth Engine sample fails, the pipeline emits a fixture-shaped land proxy.
+  `eval/alphaearth_land_metrics.json` records `source_status: "fallback"` and
+  the held-out metrics are placeholders (n=4 by construction).
+- **LightGBM siting model (Issue 10):** when `lightgbm` or `numpy` are
+  unavailable or training fails, the pipeline uses a transparent-composite
+  scorer with the same feature surface. `siting_model_subset.json` carries
+  `fallback: true` and `active_method: "transparent_composite"`.
+- **Ember hourly carbon:** preferred path is ENTSO-E generation mix ×
+  emissions factors when an ENTSO-E JSON file is provided to
+  `make carbon-subset`. Fallback is the Ember monthly carbon broadcast
+  (`active_method: "ember_monthly_repeat"`).
+- **OpenAI explanation:** `/agent/explain` calls the OpenAI Responses API
+  when `LOADSTAR_LLM_ENABLED=true` and `OPENAI_API_KEY` is set. On any
+  error (auth, rate-limit, network, empty response) the endpoint falls back
+  to a deterministic template that uses the same site facts. The
+  `ExplainResponse.source` field surfaces which path produced the message.
+
 ## Source Fallback Implications
 
 The current machine cannot fully verify private or credentialed sources without user-provided access. See `public/docs/access_decisions.md` for the latest status.

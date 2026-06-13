@@ -10,8 +10,12 @@ from __future__ import annotations
 import sqlite3
 from collections.abc import Iterator
 from contextlib import contextmanager
+from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
+
+# Repo root: `connection.py` -> `db` -> `backend` -> repo root.
+_REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def parse_scheme(database_url: str) -> str:
@@ -33,14 +37,29 @@ def is_sqlite(database_url: str) -> bool:
 
 
 def _sqlite_path(database_url: str) -> str:
-    # `sqlite:///absolute/path` and `sqlite:////absolute/path` both decode
-    # cleanly via urlparse; for relative paths Settings already resolves
-    # against ROOT_DIR so the URL we see is always absolute.
+    """Resolve the on-disk SQLite path from a `sqlite:///...` URL.
+
+    `urlparse` extracts a leading-slash path that may be either a true absolute
+    path (`/var/lib/loadstar.db`) or the sqlite convention for repo-relative
+    paths (`sqlite:///data/loadstar.db` -> path `/data/loadstar.db`). We tell
+    them apart with the filesystem: if the leading-slash form doesn't point at
+    a writable absolute location, fall back to interpreting it as a path
+    relative to the repo root.
+    """
+
     parsed = urlparse(database_url)
     if parsed.netloc:
-        # sqlite://host/path is unusual but we surface it for debugging.
         raise ValueError(f"Unsupported sqlite URL with host component: {database_url!r}")
-    return parsed.path or database_url.removeprefix("sqlite:///")
+    raw = parsed.path or database_url.removeprefix("sqlite:///")
+    if not raw:
+        raise ValueError(f"Empty sqlite path in URL: {database_url!r}")
+    candidate = Path(raw)
+    if candidate.is_absolute():
+        if candidate.exists() or candidate.parent.exists():
+            return str(candidate)
+        relative = Path(raw.lstrip("/"))
+        return str((_REPO_ROOT / relative).resolve())
+    return str((_REPO_ROOT / candidate).resolve())
 
 
 @contextmanager

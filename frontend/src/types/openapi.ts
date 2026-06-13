@@ -4,6 +4,26 @@
  */
 
 export interface paths {
+    "/agent/explain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Explain
+         * @description Explain a selected site for the chat panel; falls back to a template.
+         */
+        post: operations["explain_agent_explain_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/assumptions": {
         parameters: {
             query?: never;
@@ -33,7 +53,7 @@ export interface paths {
         };
         /**
          * Health
-         * @description Return process health and active data mode.
+         * @description Return process health, version metadata, and dependency status.
          */
         get: operations["health_health_get"];
         put?: never;
@@ -64,6 +84,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/meta/source-artifacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Source Artifacts
+         * @description Operational metadata for source versions and ingestion artifacts.
+         */
+        get: operations["source_artifacts_meta_source_artifacts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/optimize/jobs/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Optimizer Job Status
+         * @description Return the persisted state for a previously enqueued job.
+         */
+        get: operations["optimizer_job_status_optimize_jobs__job_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/optimize/supply-mix": {
         parameters: {
             query?: never;
@@ -78,6 +138,26 @@ export interface paths {
          * @description Return a chart-ready single-site supply-mix optimization response.
          */
         post: operations["optimize_optimize_supply_mix_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/optimize/supply-mix/async": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Optimize Async
+         * @description Schedule the LP solve in the background and return the job id immediately.
+         */
+        post: operations["optimize_async_optimize_supply_mix_async_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -191,10 +271,71 @@ export interface components {
             /** Sites */
             sites: components["schemas"]["SiteFeature"][];
         };
+        /**
+         * ExplainRequest
+         * @description Payload for `POST /agent/explain`.
+         */
+        ExplainRequest: {
+            /** Cell Id */
+            cell_id: string;
+            /** Power Mw */
+            power_mw: number;
+            /**
+             * Workload Type
+             * @default training
+             * @enum {string}
+             */
+            workload_type: "training" | "inference" | "mixed";
+        };
+        /**
+         * ExplainResponse
+         * @description Result of an agent explanation. Falls back to the template on any LLM error.
+         *
+         *     `source` lets the UI render a "Live · gpt-4o-mini" pill versus a
+         *     "Deterministic template" pill; both render the same chat bubble shape.
+         */
+        ExplainResponse: {
+            /** Cache Key */
+            cache_key: string;
+            /** Cell Id */
+            cell_id: string;
+            /** Message */
+            message: string;
+            /** Model */
+            model?: string | null;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "openai" | "template";
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /**
+         * HealthDependencies
+         * @description Aggregate dependency status surfaced from `/health`.
+         */
+        HealthDependencies: {
+            postgres: components["schemas"]["HealthDependency"];
+            redis: components["schemas"]["HealthDependency"];
+        };
+        /**
+         * HealthDependency
+         * @description Status of one dependency the API talks to (Postgres, Redis, ...).
+         */
+        HealthDependency: {
+            /** Detail */
+            detail?: string | null;
+            /** Latency Ms */
+            latency_ms?: number | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "unreachable" | "disabled";
         };
         /** HealthResponse */
         HealthResponse: {
@@ -202,12 +343,27 @@ export interface components {
             cache_key: string;
             /** Data Mode */
             data_mode: string;
+            dependencies?: components["schemas"]["HealthDependencies"] | null;
+            /** Git Sha */
+            git_sha?: string | null;
+            /** Started At */
+            started_at?: string | null;
             /**
              * Status
              * @default ok
              * @constant
              */
             status: "ok";
+            /**
+             * Uptime Seconds
+             * @default 0
+             */
+            uptime_seconds: number;
+            /**
+             * Version
+             * @default 0.0.0
+             */
+            version: string;
         };
         /** LayerFeature */
         LayerFeature: {
@@ -295,6 +451,49 @@ export interface components {
              * @constant
              */
             type: "FeatureCollection";
+        };
+        /**
+         * OptimizationJobAccepted
+         * @description Returned with HTTP 202 from `POST /optimize/supply-mix/async`.
+         */
+        OptimizationJobAccepted: {
+            /** Cache Key */
+            cache_key: string;
+            /** Job Id */
+            job_id: string;
+            /**
+             * Status
+             * @default pending
+             * @enum {string}
+             */
+            status: "pending" | "running" | "completed" | "failed";
+            /** Status Url */
+            status_url: string;
+        };
+        /**
+         * OptimizationJobStatus
+         * @description Polled via `GET /optimize/jobs/{job_id}`. Mirrors `optimization_runs`.
+         */
+        OptimizationJobStatus: {
+            /** Cache Key */
+            cache_key: string;
+            /** Completed At */
+            completed_at?: string | null;
+            error?: components["schemas"]["ApiErrorDetail"] | null;
+            /** Job Id */
+            job_id: string;
+            /** Request Id */
+            request_id?: string | null;
+            result?: components["schemas"]["SupplyMixResponse"] | null;
+            /** Solve Ms */
+            solve_ms?: number | null;
+            /** Started At */
+            started_at?: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "running" | "completed" | "failed";
         };
         /** OptimizeRequest */
         OptimizeRequest: {
@@ -501,6 +700,57 @@ export interface components {
             /** Wind Cf */
             wind_cf: number;
         };
+        /**
+         * SourceArtifact
+         * @description One row from `source_artifacts.db` exposed via `/meta/source-artifacts`.
+         */
+        SourceArtifact: {
+            /** Artifact Name */
+            artifact_name: string;
+            /** Artifact Path */
+            artifact_path: string;
+            /** Artifact Version */
+            artifact_version: string;
+            /** Checksum Sha256 */
+            checksum_sha256: string;
+            /** Country Scope */
+            country_scope: string;
+            /** Fallback */
+            fallback?: string | null;
+            /** Generated At */
+            generated_at: string;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            };
+            /** Record Count */
+            record_count: number;
+            /** Source Name */
+            source_name: string;
+            /** Source Status */
+            source_status: string;
+            /** Status */
+            status: string;
+        };
+        /**
+         * SourceArtifactsResponse
+         * @description Operational metadata for the active data slice.
+         *
+         *     `data_version` is a stable short fingerprint over the artifact checksums;
+         *     consumers can use it to detect when ingestion has produced a new slice.
+         */
+        SourceArtifactsResponse: {
+            /** Artifact Count */
+            artifact_count: number;
+            /** Artifacts */
+            artifacts: components["schemas"]["SourceArtifact"][];
+            /** Cache Key */
+            cache_key: string;
+            /** Data Mode */
+            data_mode: string;
+            /** Data Version */
+            data_version: string;
+        };
         /** SupplyMixResponse */
         SupplyMixResponse: {
             /** Annual Matched Clean Share */
@@ -607,6 +857,48 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    explain_agent_explain_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExplainRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExplainResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     assumptions_assumptions_get: {
         parameters: {
             query?: never;
@@ -687,6 +979,80 @@ export interface operations {
             };
         };
     };
+    source_artifacts_meta_source_artifacts_get: {
+        parameters: {
+            query?: {
+                /** @description Exact artifact name match. */
+                artifact_name?: string | null;
+                /** @description ISO-3166 alpha-2 country code; matches scoped or comma-separated lists. */
+                country?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourceArtifactsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    optimizer_job_status_optimize_jobs__job_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OptimizationJobStatus"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     optimize_optimize_supply_mix_post: {
         parameters: {
             query?: never;
@@ -725,6 +1091,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    optimize_async_optimize_supply_mix_async_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OptimizeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OptimizationJobAccepted"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

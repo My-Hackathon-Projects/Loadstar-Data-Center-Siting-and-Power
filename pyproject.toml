@@ -2,12 +2,14 @@
 name = "loadstar"
 version = "0.1.0"
 description = "Data-center siting and power planning skeleton for the Invertix challenge"
+license = { text = "MIT" }
 requires-python = ">=3.13"
 dependencies = [
   "earthengine-api",
   "fastapi",
   "lightgbm",
   "numpy",
+  "openai>=1.40",
   "psycopg[binary]",
   "pydantic",
   "pydantic-settings",

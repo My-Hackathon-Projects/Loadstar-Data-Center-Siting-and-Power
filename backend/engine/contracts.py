@@ -5,6 +5,7 @@ Single source of truth for every request and response shape exposed at
 `SiteFeature` from here so ingestion cannot drift from the API.
 """
 
+from datetime import datetime
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
@@ -21,16 +22,70 @@ class ApiErrorResponse(BaseModel):
     detail: ApiErrorDetail
 
 
+class HealthDependency(BaseModel):
+    """Status of one dependency the API talks to (Postgres, Redis, ...)."""
+
+    status: Literal["ok", "unreachable", "disabled"]
+    detail: str | None = None
+    latency_ms: float | None = None
+
+
+class HealthDependencies(BaseModel):
+    """Aggregate dependency status surfaced from `/health`."""
+
+    postgres: HealthDependency
+    redis: HealthDependency
+
+
 class HealthResponse(BaseModel):
     status: Literal["ok"] = "ok"
     data_mode: str
     cache_key: str
+    # Below are additive fields. Existing clients (and the pre-Phase-2 test that
+    # asserts only the three fields above) are unaffected because Pydantic v2
+    # serializes optionals with defaults.
+    version: str = "0.0.0"
+    git_sha: str | None = None
+    started_at: datetime | None = None
+    uptime_seconds: float = 0.0
+    dependencies: HealthDependencies | None = None
 
 
 class AssumptionsResponse(BaseModel):
     data_mode: str
     cache_key: str
     assumptions: dict[str, Any]
+
+
+class SourceArtifact(BaseModel):
+    """One row from `source_artifacts.db` exposed via `/meta/source-artifacts`."""
+
+    artifact_name: str
+    country_scope: str
+    artifact_version: str
+    source_name: str
+    source_status: str
+    status: str
+    checksum_sha256: str
+    artifact_path: str
+    record_count: int
+    fallback: str | None = None
+    generated_at: str
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class SourceArtifactsResponse(BaseModel):
+    """Operational metadata for the active data slice.
+
+    `data_version` is a stable short fingerprint over the artifact checksums;
+    consumers can use it to detect when ingestion has produced a new slice.
+    """
+
+    data_mode: str
+    cache_key: str
+    data_version: str
+    artifact_count: int
+    artifacts: list[SourceArtifact]
 
 
 class SiteFeature(BaseModel):
@@ -183,3 +238,54 @@ class SupplyMixResponse(BaseModel):
     pareto_frontier: list[ParetoPoint]
     dispatch_summary: dict[str, float]
     dispatch_preview: list[dict[str, float]]
+
+
+JobStatus = Literal["pending", "running", "completed", "failed"]
+
+
+class OptimizationJobAccepted(BaseModel):
+    """Returned with HTTP 202 from `POST /optimize/supply-mix/async`."""
+
+    job_id: str
+    status_url: str
+    status: JobStatus = "pending"
+    cache_key: str
+
+
+class OptimizationJobStatus(BaseModel):
+    """Polled via `GET /optimize/jobs/{job_id}`. Mirrors `optimization_runs`."""
+
+    job_id: str
+    status: JobStatus
+    cache_key: str
+    request_id: str | None = None
+    started_at: str | None = None
+    completed_at: str | None = None
+    solve_ms: float | None = None
+    result: SupplyMixResponse | None = None
+    error: ApiErrorDetail | None = None
+
+
+ExplainSource = Literal["openai", "template"]
+
+
+class ExplainRequest(BaseModel):
+    """Payload for `POST /agent/explain`."""
+
+    cell_id: str
+    power_mw: float = Field(gt=0)
+    workload_type: Literal["training", "inference", "mixed"] = "training"
+
+
+class ExplainResponse(BaseModel):
+    """Result of an agent explanation. Falls back to the template on any LLM error.
+
+    `source` lets the UI render a "Live · gpt-4o-mini" pill versus a
+    "Deterministic template" pill; both render the same chat bubble shape.
+    """
+
+    cell_id: str
+    source: ExplainSource
+    model: str | None = None
+    message: str
+    cache_key: str

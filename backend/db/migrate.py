@@ -1,9 +1,15 @@
-"""Apply the minimal four-table Loadstar schema to SQLite or Postgres from zero.
+"""Apply the minimal Loadstar schema (plus subsequent migrations) from zero.
 
 `apply_schema(path)` keeps the legacy SQLite-by-path entry point so existing
 tests (which create temp files via pytest's `tmp_path`) work unchanged.
 `apply_schema_url(url)` is the modern entry point: any `database_url` value
 the API would accept is also valid here.
+
+Migrations are applied in lexicographic order. SQLite reads `*_sqlite.sql`
+files when present; Postgres reads the dialect-neutral `*.sql` files. The
+initial schema (`001_initial.sql`) is SQLite-flavoured and the Postgres-
+flavoured equivalent is `002_postgres.sql`; for additive migrations after
+that point both dialects coexist as `003_*.sql` and `003_*_sqlite.sql`.
 """
 
 from __future__ import annotations
@@ -15,17 +21,36 @@ from backend.api.core.config import get_settings
 from backend.db.connection import get_connection, is_postgres, is_sqlite
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
-SQLITE_SCHEMA_PATH = Path(__file__).resolve().parent / "001_initial.sql"
-POSTGRES_SCHEMA_PATH = Path(__file__).resolve().parent / "002_postgres.sql"
+SCHEMA_DIR = Path(__file__).resolve().parent
 
 
-def _schema_for(database_url: str) -> str:
-    """Return the SQL text appropriate to the DSN scheme."""
+def _migration_files(database_url: str) -> list[Path]:
+    """Return the migration files to apply, in order, for the given dialect."""
 
     if is_sqlite(database_url):
-        return SQLITE_SCHEMA_PATH.read_text(encoding="utf-8")
+        # Initial schema is the SQLite path; later migrations have a `_sqlite`
+        # variant. Collect both, drop the Postgres-only `002_*` and any
+        # non-sqlite `003+_*` migrations.
+        files: list[Path] = []
+        for path in sorted(SCHEMA_DIR.glob("[0-9][0-9][0-9]_*.sql")):
+            if path.name == "001_initial.sql":
+                files.append(path)
+                continue
+            if path.name == "002_postgres.sql":
+                continue
+            if path.name.endswith("_sqlite.sql"):
+                files.append(path)
+        return files
     if is_postgres(database_url):
-        return POSTGRES_SCHEMA_PATH.read_text(encoding="utf-8")
+        files = []
+        for path in sorted(SCHEMA_DIR.glob("[0-9][0-9][0-9]_*.sql")):
+            if path.name == "001_initial.sql":
+                # Replaced by `002_postgres.sql` for Postgres.
+                continue
+            if path.name.endswith("_sqlite.sql"):
+                continue
+            files.append(path)
+        return files
     raise ValueError(f"Unsupported database_url scheme: {database_url!r}")
 
 
@@ -33,27 +58,23 @@ def apply_schema(database_path: Path) -> None:
     """Legacy SQLite-by-path entry point. Creates parent dirs if needed."""
 
     database_path.parent.mkdir(parents=True, exist_ok=True)
-    # Resolve so the URL we hand to urlparse always has a leading slash on
-    # the path component, regardless of whether the caller passed a relative
-    # or absolute Path. `Path.resolve()` does not require the file to exist.
     apply_schema_url(f"sqlite:///{database_path.resolve()}")
 
 
 def apply_schema_url(database_url: str) -> None:
-    """Apply the schema appropriate to `database_url`."""
+    """Apply every migration appropriate to `database_url`, in order."""
 
-    schema_sql = _schema_for(database_url)
+    files = _migration_files(database_url)
     with get_connection(database_url) as connection:
-        if is_sqlite(database_url):
-            # sqlite3 has executescript() for multi-statement SQL.
-            connection.executescript(schema_sql)
+        for path in files:
+            schema_sql = path.read_text(encoding="utf-8")
+            if is_sqlite(database_url):
+                connection.executescript(schema_sql)
+                connection.commit()
+                continue
+            with connection.cursor() as cursor:
+                cursor.execute(schema_sql)
             connection.commit()
-            return
-        # Postgres: psycopg's execute() handles multi-statement SQL when the
-        # DSN is opened without server-side cursors (default).
-        with connection.cursor() as cursor:
-            cursor.execute(schema_sql)
-        connection.commit()
 
 
 def main() -> int:
