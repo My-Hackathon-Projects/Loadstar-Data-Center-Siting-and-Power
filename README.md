@@ -2,7 +2,7 @@
 
 Loadstar is a decision-support product for the Invertix **Data-Center Siting & Power** challenge. It recommends European data-center locations for a requested MW size, explains trade-offs across energy and connectivity constraints, and returns a chart-ready supply-mix optimization response for the selected site.
 
-The current implementation covers issues `#1` through `#10`:
+The current implementation covers issues `#1` through `#11`:
 
 - `public/docs/plan.md` is the canonical build plan.
 - `public/docs/access_decisions.md` records task-zero external source checks and downstream fallback implications.
@@ -11,6 +11,7 @@ The current implementation covers issues `#1` through `#10`:
 - `backend/db/001_initial.sql` defines the minimal four-table schema for the first demo slice.
 - A subset AlphaEarth land pipeline writes buildable-land and data-center-similarity features with deterministic fallback metrics.
 - A siting propensity pipeline trains LightGBM viability scores and records SHAP-style explanations, with a deterministic composite fallback when LightGBM is unavailable.
+- Deterministic site scoring ranks eligible cells with additive score breakdowns for API, UI, and agent explanations.
 
 ## Repository Layout
 
@@ -85,6 +86,8 @@ curl -sS http://127.0.0.1:8000/sites/search \
   -H "Content-Type: application/json" \
   -d '{"power_mw": 280, "workload_type": "training", "top_k": 5}'
 ```
+
+Search hard-filters excluded cells and cells below the requested MW headroom. Each ranked result includes `composite_score`, `score_breakdown`, `score_contributions`, and `score_explanations` across price, carbon, congestion, grid distance, connectivity, land, and ML viability. Requests below 20 MW or above 700 MW include scale-band warnings.
 
 ## Task-Zero Access Checks
 
@@ -211,6 +214,7 @@ python3 -m pyright backend/api backend/engine backend/pipeline
 The current tests cover:
 
 - search validation and scale-band warnings
+- deterministic additive site scoring and score explanations
 - fixture response shape
 - detail and optimizer contracts
 - access decision fallback behavior

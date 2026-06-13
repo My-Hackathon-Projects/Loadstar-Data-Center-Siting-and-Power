@@ -42,6 +42,24 @@ def test_search_uses_real_site_feature_shape_and_filters_by_headroom() -> None:
     }
     assert expected_fields.issubset(first_site.keys())
     assert all(result["site"]["headroom_mw"] >= 280 for result in payload["results"])
+    for result in payload["results"]:
+        assert set(result["score_breakdown"]) == {
+            "price",
+            "carbon",
+            "congestion",
+            "grid",
+            "connectivity",
+            "land",
+            "ml",
+        }
+        assert set(result["score_contributions"]) == set(result["score_breakdown"])
+        assert result["score_explanations"]
+        assert all(
+            {"factor", "score", "weight", "contribution", "raw_value", "direction"}.issubset(
+                explanation
+            )
+            for explanation in result["score_explanations"]
+        )
 
 
 def test_search_scale_band_warnings() -> None:
@@ -49,6 +67,16 @@ def test_search_scale_band_warnings() -> None:
     large = client.post("/sites/search", json={"power_mw": 800}).json()
     assert small["warnings"][0]["code"] == "small_load"
     assert large["warnings"][0]["code"] == "large_load"
+
+
+def test_openapi_exposes_score_explanation_contract() -> None:
+    schema = app.openapi()
+
+    ranked_site = schema["components"]["schemas"]["RankedSite"]["properties"]
+    assert "score_breakdown" in ranked_site
+    assert "score_contributions" in ranked_site
+    assert "score_explanations" in ranked_site
+    assert "ScoreExplanation" in schema["components"]["schemas"]
 
 
 def test_detail_and_optimizer_complete_demo_contract() -> None:

@@ -30,10 +30,21 @@ export interface ScaleWarning {
   message: string;
 }
 
+export interface ScoreExplanation {
+  factor: string;
+  score: number;
+  weight: number;
+  contribution: number;
+  raw_value: string;
+  direction: "lower_is_better" | "higher_is_better" | "composite";
+}
+
 export interface RankedSite {
   site: SiteFeature;
   composite_score: number;
   score_breakdown: Record<string, number>;
+  score_contributions: Record<string, number>;
+  score_explanations: ScoreExplanation[];
 }
 
 export interface SearchResponse {

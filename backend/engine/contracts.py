@@ -88,10 +88,21 @@ class ScaleWarning(BaseModel):
     message: str
 
 
+class ScoreExplanation(BaseModel):
+    factor: str
+    score: float = Field(ge=0, le=1)
+    weight: float
+    contribution: float
+    raw_value: str
+    direction: Literal["lower_is_better", "higher_is_better", "composite"]
+
+
 class RankedSite(BaseModel):
     site: SiteFeature
     composite_score: float
     score_breakdown: dict[str, float]
+    score_contributions: dict[str, float]
+    score_explanations: list[ScoreExplanation]
 
 
 class SearchResponse(BaseModel):
