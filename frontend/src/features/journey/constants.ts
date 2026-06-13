@@ -14,20 +14,38 @@ export const NARRATIVE_LINES = [
 ] as const;
 
 export const NARRATIVE_LINE_MS = 2200;
-export const FINAL_NARRATIVE_HOLD_MS = 3600;
 export const NARRATIVE_FADE_S = 0.85;
 export const FINAL_NARRATIVE_FADE_S = 1.45;
+
+/**
+ * Final-line reveal cadence. The last line types out character-by-character,
+ * settles, and only then hands off to the globe. Today the line snapped in at
+ * the same fade rate as the others and the globe transition felt like a cut.
+ */
+export const FINAL_NARRATIVE_CHAR_MS = 65;
+export const FINAL_NARRATIVE_REVEAL_BUFFER_MS = 250;
+export const FINAL_NARRATIVE_SETTLE_MS = 2500;
+
+const FINAL_NARRATIVE_LINE_LENGTH = Array.from(
+  NARRATIVE_LINES[NARRATIVE_LINES.length - 1] ?? "",
+).length;
+
+export const FINAL_NARRATIVE_TOTAL_MS =
+  FINAL_NARRATIVE_REVEAL_BUFFER_MS +
+  FINAL_NARRATIVE_LINE_LENGTH * FINAL_NARRATIVE_CHAR_MS +
+  FINAL_NARRATIVE_SETTLE_MS;
 
 /** Per-phase durations (ms). The greeting is command-gated, not timer-gated. */
 export const JOURNEY_TIMING = {
   flightMs:
     NARRATIVE_LINE_MS * Math.max(NARRATIVE_LINES.length - 1, 0) +
-    FINAL_NARRATIVE_HOLD_MS,
+    FINAL_NARRATIVE_TOTAL_MS,
   arrivalMs: 5500,
 } as const;
 
 export const PRODUCT_NAME = "loadstar";
 export const FRED_GREETING = "Hello, my name is Fred. How can I help you today?";
+export const FRED_QUICK_ACK = "Sure, here is the result.";
 
 /** Starfield: one BufferGeometry, additive blending, a single draw call. */
 export const STARFIELD = {

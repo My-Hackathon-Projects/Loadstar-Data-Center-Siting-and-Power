@@ -1,8 +1,13 @@
 """Tests for `/agent/chat` (agent-driven search).
 
-The deterministic intent parser is the demo-safe default: every message runs a
-real engine search and returns a dashboard action. When OpenAI is enabled the
-model only rephrases the reply; any error falls back to the deterministic text.
+Two paths share the same endpoint and contract:
+
+* **Deterministic** — keyword-driven regex parser, used when the LLM is
+  disabled or fails. Covered by the original tests below.
+* **LLM tool-calling** — OpenAI Responses API with `search_sites` and
+  `explain_site` tools. Covered by the new tests at the bottom that
+  monkeypatch ``_run_llm_agent``; they intentionally do not exercise the
+  OpenAI SDK transport.
 """
 
 from __future__ import annotations
@@ -16,6 +21,13 @@ from fastapi.testclient import TestClient
 from backend.api.core.config import get_settings
 from backend.api.main import app
 from backend.api.services import agent_service
+from backend.api.services.site_service import search_site_cells
+from backend.engine.contracts import (
+    AgentAction,
+    AgentChatRequest,
+    AgentChatResponse,
+    SearchRequest,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -152,6 +164,14 @@ def test_chat_uses_live_response_when_openai_succeeds(
 
     monkeypatch.setattr(agent_service, "_try_openai_chat", _fake_call)
 
+    # Force the deterministic path so this test exercises the rephraser, not
+    # the new tool-calling agent. The rephraser is the contract this test
+    # was written for.
+    async def _no_llm_agent(_: AgentChatRequest) -> AgentChatResponse | None:
+        return None
+
+    monkeypatch.setattr(agent_service, "_run_llm_agent", _no_llm_agent)
+
     client = TestClient(app)
     body = _post(client, "cheapest site in Sweden")
 
@@ -175,8 +195,165 @@ def test_chat_falls_back_to_template_when_openai_raises(
 
     monkeypatch.setattr(agent_service, "_try_openai_chat", _raises)
 
+    # Force the LLM tool-calling agent to bow out so the deterministic path
+    # runs (and exercises the fall-through `_try_openai_chat` rephraser).
+    async def _no_llm_agent(_: AgentChatRequest) -> AgentChatResponse | None:
+        return None
+
+    monkeypatch.setattr(agent_service, "_run_llm_agent", _no_llm_agent)
+
     client = TestClient(app)
     body = _post(client, "find sites in Germany")
 
     assert body["source"] == "template"
     assert body["action"]["applied"]["country_filter"] == ["DE"]
+
+
+# --- LLM tool-calling agent path -------------------------------------------------
+
+
+def _enable_llm_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("LOADSTAR_LLM_ENABLED", "true")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test-key")
+    monkeypatch.setenv("OPENAI_MODEL", "gpt-4o-mini")
+    get_settings.cache_clear()
+
+
+def test_chat_llm_path_used_when_enabled_and_no_tool_call(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A no-tool-call LLM reply skips the deterministic search entirely."""
+
+    _enable_llm_env(monkeypatch)
+
+    async def _llm(_: AgentChatRequest) -> AgentChatResponse | None:
+        return AgentChatResponse(
+            source="openai",
+            model="gpt-4o-mini",
+            message="Hello! Tell me an MW target and a country and I will go.",
+            action=AgentAction(type="none"),
+            cache_key="agent.chat.llm:greet",
+        )
+
+    monkeypatch.setattr(agent_service, "_run_llm_agent", _llm)
+
+    client = TestClient(app)
+    body = _post(client, "hi fred")
+
+    assert body["source"] == "openai"
+    assert body["model"] == "gpt-4o-mini"
+    assert body["action"]["type"] == "none"
+    assert body["action"]["search"] is None
+
+
+def test_chat_llm_path_invokes_search_action(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """When the LLM returns a search action it must reach the dashboard."""
+
+    _enable_llm_env(monkeypatch)
+
+    request = SearchRequest(
+        power_mw=280,
+        workload_type="training",
+        top_k=8,
+        country_filter=["SE"],
+    )
+    engine_response = search_site_cells(request)
+    assert engine_response.results, "fixture should rank at least one Swedish site"
+    focus_cell_id = engine_response.results[0].site.cell_id
+
+    async def _llm(_: AgentChatRequest) -> AgentChatResponse | None:
+        return AgentChatResponse(
+            source="openai",
+            model="gpt-4o-mini",
+            message="Sure, Lulea/Boden leads. Flying the map there now.",
+            action=AgentAction(
+                type="search",
+                search=engine_response,
+                focus_cell_id=focus_cell_id,
+                applied=request,
+            ),
+            cache_key="agent.chat.llm:se",
+        )
+
+    monkeypatch.setattr(agent_service, "_run_llm_agent", _llm)
+
+    client = TestClient(app)
+    body = _post(client, "cheapest 280 MW site in Sweden")
+
+    assert body["source"] == "openai"
+    assert body["action"]["type"] == "search"
+    assert body["action"]["focus_cell_id"] == focus_cell_id
+    assert body["action"]["applied"]["country_filter"] == ["SE"]
+    assert body["action"]["search"]["results"]
+
+
+def test_chat_llm_path_falls_back_when_returns_none(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """LLM bowing out (network/auth/etc.) must not break the deterministic flow."""
+
+    _enable_llm_env(monkeypatch)
+
+    async def _llm(_: AgentChatRequest) -> AgentChatResponse | None:
+        return None
+
+    async def _no_rephrase(*_: Any, **__: Any) -> str | None:
+        return None
+
+    monkeypatch.setattr(agent_service, "_run_llm_agent", _llm)
+    monkeypatch.setattr(agent_service, "_try_openai_chat", _no_rephrase)
+
+    client = TestClient(app)
+    body = _post(client, "find sites in Germany")
+
+    assert body["source"] == "template"
+    assert body["action"]["type"] == "search"
+    assert body["action"]["applied"]["country_filter"] == ["DE"]
+    assert "Germany" in body["message"]
+
+
+def test_chat_llm_path_forwards_history(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The history list must reach `_run_llm_agent` so multi-turn context works."""
+
+    _enable_llm_env(monkeypatch)
+
+    captured: dict[str, Any] = {}
+
+    async def _llm(payload: AgentChatRequest) -> AgentChatResponse | None:
+        captured["history"] = [(turn.speaker, turn.body) for turn in payload.history]
+        captured["message"] = payload.message
+        return AgentChatResponse(
+            source="openai",
+            model="gpt-4o-mini",
+            message="Got it.",
+            action=AgentAction(type="none"),
+            cache_key="agent.chat.llm:hist",
+        )
+
+    monkeypatch.setattr(agent_service, "_run_llm_agent", _llm)
+
+    client = TestClient(app)
+    history = [
+        {"speaker": "user", "body": "we are looking at Sweden"},
+        {"speaker": "assistant", "body": "Sure, Lulea is leading."},
+    ]
+    response = client.post(
+        "/agent/chat",
+        json={
+            "message": "what about Germany?",
+            "power_mw": 280,
+            "workload_type": "training",
+            "history": history,
+        },
+    )
+    assert response.status_code == 200, response.text
+
+    assert captured["message"] == "what about Germany?"
+    assert captured["history"] == [
+        ("user", "we are looking at Sweden"),
+        ("assistant", "Sure, Lulea is leading."),
+    ]

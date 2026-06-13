@@ -1,19 +1,31 @@
 """Agent chat service: Fred answers free text and runs real searches when needed.
 
-The deterministic intent parser is the demo-safe default. It always builds a real
-`SearchRequest` for siting asks and runs the existing engine search, while
-greetings and selected-site follow-ups leave the dashboard untouched. When OpenAI
-is configured the live model only rephrases the reply around the real,
-engine-computed numbers (numeric faithfulness: the engine decides, the model
-narrates). Any LLM error falls back to the deterministic narration, exactly like
-`llm_service`.
+Two paths share the same `chat()` entry point:
+
+1. **LLM tool-calling agent (preferred).** When `LOADSTAR_LLM_ENABLED=true` and an
+   `OPENAI_API_KEY` is set, the OpenAI Responses API drives the conversation.
+   The model has two tools — `search_sites` (real engine search) and
+   `explain_site` (cell explanation). The model decides when to call them; the
+   server executes the call against the real engine and feeds the result back.
+   The model never sees free-form numbers it can echo: every figure in its
+   reply must come from a tool result, enforced by the system prompt.
+
+2. **Deterministic regex fallback.** When the LLM is disabled, missing, or
+   errors, a keyword-driven parser (preserved verbatim from the original
+   service) builds a `SearchRequest`, runs the engine, and returns deterministic
+   narration. This is the demo-safe default and keeps the rehearsal alive when
+   any external dependency is offline.
+
+The wire contract `AgentChatResponse` is identical across both paths so the
+frontend store/map updates without branching.
 """
 
 from __future__ import annotations
 
+import json
 import logging
 import re
-from typing import Any
+from typing import Any, cast
 
 from backend.api.core.config import get_settings
 from backend.api.services.cache_keys import build_cache_key
@@ -67,6 +79,8 @@ _COUNTRY_NAMES: dict[str, str] = {
     "NL": "Netherlands",
 }
 
+_SUPPORTED_COUNTRY_CODES: tuple[str, ...] = tuple(_COUNTRY_NAMES.keys())
+
 # Phrase groups mapped to the scoring factor they emphasize. The factor's default
 # weight is multiplied so the ranking leans that way without changing the engine.
 _EMPHASIS: tuple[tuple[tuple[str, ...], str], ...] = (
@@ -103,6 +117,14 @@ _EMPHASIS: tuple[tuple[tuple[str, ...], str], ...] = (
 )
 
 _EMPHASIS_MULTIPLIER = 3.0
+_SUPPORTED_EMPHASIS_FACTORS: tuple[str, ...] = (
+    "price",
+    "carbon",
+    "grid",
+    "connectivity",
+    "land",
+    "congestion",
+)
 
 _WORKLOAD_TERMS = ("training", "inference", "mixed")
 
@@ -142,6 +164,117 @@ _THANKS_TERMS = ("thanks", "thank you", "appreciate it")
 
 FRED_INTRO = "Hello, my name is Fred. How can I help you today?"
 
+# LLM tool-calling configuration.
+_MAX_TOOL_ITERATIONS = 2
+_LLM_TIMEOUT_S = 12.0
+_LLM_MAX_OUTPUT_TOKENS = 400
+
+_FRED_SYSTEM_PROMPT = (
+    "You are Fred, a senior data-center siting analyst embedded in the "
+    "Loadstar dashboard. You help users decide where to build AI campuses "
+    "across Europe.\n\n"
+    "Tools:\n"
+    "- search_sites: ALWAYS call this when the user asks where to build, the "
+    "cheapest/greenest/biggest site, mentions a country, an MW target, or any "
+    "comparison across sites. Never describe siting numbers from memory.\n"
+    "- explain_site: call when the user asks for details, tradeoffs, or risk "
+    "on a specific cell and a selected_cell_id is available.\n\n"
+    "Numeric faithfulness: any price, carbon intensity, headroom, or score "
+    "in your reply MUST come verbatim from a tool result you saw in this "
+    "turn. If you have no tool result, do NOT invent numbers — ask a "
+    "clarifying question or call search_sites.\n\n"
+    "Conversation style: warm and concise. ONE short paragraph (max ~70 "
+    "words). Begin naturally with 'Sure' when answering a request. End with "
+    "one concrete next step (e.g. 'Flying the map there now.') when a "
+    "search_sites call returned candidates.\n\n"
+    "If the user just greets you, thanks you, or asks how the product works, "
+    "reply briefly without calling any tool."
+)
+
+
+_SEARCH_SITES_TOOL: dict[str, Any] = {
+    "type": "function",
+    "name": "search_sites",
+    "description": (
+        "Run the live siting engine to rank candidate cells for a "
+        "data-center build. Returns real prices, carbon intensity, and grid "
+        "headroom; you must use those numbers verbatim in your reply."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "power_mw": {
+                "type": "number",
+                "minimum": 1,
+                "description": "Target load in megawatts.",
+            },
+            "workload_type": {
+                "type": "string",
+                "enum": ["training", "inference", "mixed"],
+                "description": "Workload profile that drives the carbon weighting.",
+            },
+            "top_k": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 50,
+                "description": "How many ranked candidates to return (default 8).",
+            },
+            "country_filter": {
+                "type": "array",
+                "items": {
+                    "type": "string",
+                    "enum": list(_SUPPORTED_COUNTRY_CODES),
+                },
+                "description": "Restrict ranking to these ISO-2 country codes.",
+            },
+            "emphasis": {
+                "type": "array",
+                "items": {
+                    "type": "string",
+                    "enum": list(_SUPPORTED_EMPHASIS_FACTORS),
+                },
+                "description": (
+                    "Factors to emphasize in the composite score. "
+                    "Multiplies the default weight before renormalizing."
+                ),
+            },
+        },
+        "required": ["power_mw"],
+        "additionalProperties": False,
+    },
+}
+
+
+_EXPLAIN_SITE_TOOL: dict[str, Any] = {
+    "type": "function",
+    "name": "explain_site",
+    "description": (
+        "Generate a detailed explanation of a single candidate cell. Use when "
+        "the user asks 'why', 'tradeoffs', 'risks', or 'tell me about this "
+        "site' for the currently selected cell."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "cell_id": {
+                "type": "string",
+                "description": "H3 cell identifier returned by search_sites.",
+            },
+            "power_mw": {
+                "type": "number",
+                "minimum": 1,
+                "description": "Target load in MW for the explanation.",
+            },
+            "workload_type": {
+                "type": "string",
+                "enum": ["training", "inference", "mixed"],
+            },
+        },
+        "required": ["cell_id"],
+        "additionalProperties": False,
+    },
+}
+
 
 def _parse_country_filter(text: str) -> list[str] | None:
     found: list[str] = []
@@ -153,18 +286,31 @@ def _parse_country_filter(text: str) -> list[str] | None:
     return found or None
 
 
-def _build_weights(text: str) -> Weights:
+def _weights_from_emphasis(factors: list[str]) -> Weights:
+    """Build a `Weights` boosting each factor by `_EMPHASIS_MULTIPLIER`.
+
+    Mirrors the regex-driven `_build_weights` used in the deterministic path,
+    but takes a structured list of factor names — the LLM tool surface picks
+    from `_SUPPORTED_EMPHASIS_FACTORS` so the inputs are validated upstream.
+    """
+
     data = {key: float(value) for key, value in Weights().model_dump().items()}
-    for phrases, factor in _EMPHASIS:
-        if any(phrase in text for phrase in phrases):
-            data[factor] *= _EMPHASIS_MULTIPLIER
-    # Renormalize so the weights still sum to 1. This preserves the relative
-    # emphasis (and therefore the ranking) while keeping the composite score in
-    # the 0..1 range the UI renders as a percentage.
+    for factor in factors:
+        if factor not in data:
+            continue
+        data[factor] *= _EMPHASIS_MULTIPLIER
     total = sum(data.values())
     if total > 0:
         data = {key: value / total for key, value in data.items()}
     return Weights(**data)
+
+
+def _build_weights(text: str) -> Weights:
+    factors: list[str] = []
+    for phrases, factor in _EMPHASIS:
+        if any(phrase in text for phrase in phrases):
+            factors.append(factor)
+    return _weights_from_emphasis(factors)
 
 
 def _contains_any(text: str, terms: tuple[str, ...]) -> bool:
@@ -321,7 +467,11 @@ async def _try_openai_chat(
     api_key: str,
     model: str,
 ) -> str | None:
-    """Rephrase the reply around the engine facts; return None on any error."""
+    """Rephrase the deterministic reply around the engine facts; None on error.
+
+    Used only by the deterministic fallback path. The new tool-calling agent
+    (`_run_llm_agent`) drives the LLM directly and does not call this helper.
+    """
 
     prompt = (
         "You are Fred, a data-center siting analyst embedded in a live dashboard. "
@@ -355,8 +505,306 @@ async def _try_openai_chat(
     return extract_response_text(response)
 
 
-async def chat(payload: AgentChatRequest) -> AgentChatResponse:
-    """Return Fred's reply plus any dashboard action the UI should apply."""
+def _build_search_request_from_args(
+    payload: AgentChatRequest,
+    args: dict[str, Any],
+) -> SearchRequest:
+    """Convert tool-call args into a SearchRequest, defaulting to payload values."""
+
+    power_raw = args.get("power_mw", payload.power_mw)
+    try:
+        power_mw = max(float(power_raw), 1.0)
+    except (TypeError, ValueError):
+        power_mw = max(float(payload.power_mw), 1.0)
+
+    workload = args.get("workload_type", payload.workload_type)
+    if workload not in _WORKLOAD_TERMS:
+        workload = payload.workload_type
+
+    top_k_raw = args.get("top_k", 8)
+    try:
+        top_k = min(max(int(top_k_raw), 1), 50)
+    except (TypeError, ValueError):
+        top_k = 8
+
+    country_filter_raw = args.get("country_filter")
+    if isinstance(country_filter_raw, list):
+        country_filter_list = cast(list[Any], country_filter_raw)
+        country_filter: list[str] | None = [
+            code
+            for code in country_filter_list
+            if isinstance(code, str) and code in _SUPPORTED_COUNTRY_CODES
+        ] or None
+    else:
+        country_filter = None
+
+    emphasis_raw = args.get("emphasis")
+    if isinstance(emphasis_raw, list):
+        emphasis_list = cast(list[Any], emphasis_raw)
+        emphasis = [
+            factor
+            for factor in emphasis_list
+            if isinstance(factor, str) and factor in _SUPPORTED_EMPHASIS_FACTORS
+        ]
+    else:
+        emphasis = []
+
+    return SearchRequest(
+        power_mw=power_mw,
+        workload_type=workload,
+        top_k=top_k,
+        weights=_weights_from_emphasis(emphasis),
+        country_filter=country_filter,
+    )
+
+
+def _summarize_search_for_tool(
+    request: SearchRequest,
+    response: SearchResponse,
+) -> str:
+    """Compact JSON the LLM consumes as the search_sites result.
+
+    Surfaces the top five candidates with the same fields the deterministic
+    narration uses. Keeping this small reduces token cost and forces the model
+    to lean on the tool result rather than reasoning over the entire response.
+    """
+
+    top_results: list[dict[str, Any]] = []
+    for ranked in response.results[:5]:
+        site = ranked.site
+        top_results.append(
+            {
+                "cell_id": site.cell_id,
+                "region_name": site.region_name,
+                "country_code": site.country_code,
+                "composite_score_pct": round(ranked.composite_score * 100, 1),
+                "mean_price_eur_mwh": round(site.mean_price_eur_mwh, 1),
+                "carbon_intensity_g_kwh": round(site.carbon_intensity_g_kwh, 1),
+                "headroom_mw": round(site.headroom_mw, 1),
+            }
+        )
+    payload: dict[str, Any] = {
+        "count": len(response.results),
+        "applied": {
+            "power_mw": request.power_mw,
+            "workload_type": request.workload_type,
+            "top_k": request.top_k,
+            "country_filter": request.country_filter,
+        },
+        "top_results": top_results,
+    }
+    return json.dumps(payload, ensure_ascii=False)
+
+
+def _build_llm_input(payload: AgentChatRequest) -> list[dict[str, Any]]:
+    """Convert prior history + the new user message into Responses-API input."""
+
+    items: list[dict[str, Any]] = []
+    for turn in payload.history[-8:]:
+        items.append(
+            {
+                "role": "assistant" if turn.speaker == "assistant" else "user",
+                "content": [{"type": "input_text", "text": turn.body}],
+            }
+        )
+    items.append(
+        {
+            "role": "user",
+            "content": [{"type": "input_text", "text": payload.message}],
+        }
+    )
+    return items
+
+
+def _extract_function_calls(response: Any) -> list[dict[str, Any]]:
+    """Collect `function_call` items from a Responses-API result.
+
+    Each item is normalized to `{call_id, name, arguments}`. Returns an empty
+    list when the model produced only a text answer.
+    """
+
+    output = getattr(response, "output", None)
+    if not isinstance(output, list):
+        return []
+    output_items = cast(list[Any], output)
+    calls: list[dict[str, Any]] = []
+    for item in output_items:
+        if getattr(item, "type", None) != "function_call":
+            continue
+        call_id = getattr(item, "call_id", None) or getattr(item, "id", None)
+        name = getattr(item, "name", None)
+        arguments = getattr(item, "arguments", None)
+        if not isinstance(call_id, str) or not isinstance(name, str):
+            continue
+        parsed_args: dict[str, Any] = {}
+        if isinstance(arguments, str) and arguments:
+            try:
+                decoded = json.loads(arguments)
+            except json.JSONDecodeError:
+                decoded = None
+            if isinstance(decoded, dict):
+                parsed_args = cast(dict[str, Any], decoded)
+        calls.append({"call_id": call_id, "name": name, "arguments": parsed_args})
+    return calls
+
+
+async def _run_llm_agent(payload: AgentChatRequest) -> AgentChatResponse | None:
+    """Drive Fred via OpenAI tool-calling; return None on any error.
+
+    The loop is bounded by `_MAX_TOOL_ITERATIONS` to cap latency. After the cap
+    we force a final text reply by calling once more without `tools`. Any
+    exception falls through to the deterministic path.
+    """
+
+    settings = get_settings()
+    if not (settings.openai_enabled and settings.openai_api_key):
+        return None
+
+    model = settings.openai_model
+    api_key = settings.openai_api_key
+
+    last_search_request: SearchRequest | None = None
+    last_search_response: SearchResponse | None = None
+    tool_iterations = 0
+
+    try:
+        # Lazy import keeps the OpenAI client out of the deterministic test path.
+        from openai import AsyncOpenAI
+
+        client: Any = AsyncOpenAI(api_key=api_key, timeout=_LLM_TIMEOUT_S)
+        input_items = _build_llm_input(payload)
+        tools: list[dict[str, Any]] | None = [_SEARCH_SITES_TOOL, _EXPLAIN_SITE_TOOL]
+
+        while True:
+            create_kwargs: dict[str, Any] = {
+                "model": model,
+                "input": input_items,
+                "instructions": _FRED_SYSTEM_PROMPT,
+                "max_output_tokens": _LLM_MAX_OUTPUT_TOKENS,
+            }
+            if tools is not None:
+                create_kwargs["tools"] = tools
+
+            response: Any = await client.responses.create(**create_kwargs)
+            calls = _extract_function_calls(response)
+
+            if not calls:
+                text = extract_response_text(response)
+                if not text:
+                    logger.warning(
+                        "agent.empty_response",
+                        extra={"event": "agent.empty_response", "model": model},
+                    )
+                    return None
+                action = _build_action(last_search_request, last_search_response)
+                return AgentChatResponse(
+                    source="openai",
+                    model=model,
+                    message=text,
+                    action=action,
+                    cache_key=build_cache_key(
+                        "agent.chat.llm",
+                        payload.message,
+                        payload.selected_cell_id,
+                        payload.power_mw,
+                        payload.workload_type,
+                        payload.history,
+                        last_search_request,
+                    ),
+                )
+
+            tool_iterations += 1
+
+            # Echo the model's function_call items into input, then append our
+            # function_call_output items keyed by the same call_id. This is the
+            # canonical Responses-API tool-loop shape.
+            for call in calls:
+                input_items.append(
+                    {
+                        "type": "function_call",
+                        "call_id": call["call_id"],
+                        "name": call["name"],
+                        "arguments": json.dumps(call["arguments"]),
+                    }
+                )
+
+            for call in calls:
+                tool_output: str
+                if call["name"] == "search_sites":
+                    request = _build_search_request_from_args(payload, call["arguments"])
+                    try:
+                        engine_response = search_site_cells(request)
+                    except Exception as exc:  # noqa: BLE001 - bubble up via tool result.
+                        tool_output = json.dumps({"error": type(exc).__name__})
+                    else:
+                        last_search_request = request
+                        last_search_response = engine_response
+                        tool_output = _summarize_search_for_tool(request, engine_response)
+                elif call["name"] == "explain_site":
+                    cell_id = call["arguments"].get("cell_id")
+                    if not isinstance(cell_id, str) or not cell_id:
+                        tool_output = json.dumps({"error": "missing_cell_id"})
+                    else:
+                        explain_request = ExplainRequest(
+                            cell_id=cell_id,
+                            power_mw=float(
+                                call["arguments"].get("power_mw", payload.power_mw)
+                            ),
+                            workload_type=call["arguments"].get(
+                                "workload_type", payload.workload_type
+                            )
+                            if call["arguments"].get("workload_type") in _WORKLOAD_TERMS
+                            else payload.workload_type,
+                        )
+                        try:
+                            explanation = await explain_site(explain_request)
+                            tool_output = json.dumps({"message": explanation.message})
+                        except KeyError:
+                            tool_output = json.dumps({"error": "unknown_cell"})
+                else:
+                    tool_output = json.dumps({"error": "unknown_tool"})
+
+                input_items.append(
+                    {
+                        "type": "function_call_output",
+                        "call_id": call["call_id"],
+                        "output": tool_output,
+                    }
+                )
+
+            if tool_iterations >= _MAX_TOOL_ITERATIONS:
+                # Force a final text reply by removing tools from the next call.
+                tools = None
+
+    except Exception as exc:  # noqa: BLE001 - logged, fall back to deterministic.
+        logger.warning(
+            "agent.fallback",
+            extra={
+                "event": "agent.fallback",
+                "reason": type(exc).__name__,
+                "model": model,
+            },
+        )
+        return None
+
+
+def _build_action(
+    request: SearchRequest | None,
+    response: SearchResponse | None,
+) -> AgentAction:
+    if request is None or response is None:
+        return AgentAction(type="none")
+    focus_cell_id = response.results[0].site.cell_id if response.results else None
+    return AgentAction(
+        type="search",
+        search=response,
+        focus_cell_id=focus_cell_id,
+        applied=request,
+    )
+
+
+async def _deterministic_chat(payload: AgentChatRequest) -> AgentChatResponse:
+    """Keyword-driven fallback path. Demo-safe; no LLM required."""
 
     text = payload.message.lower()
     if _is_selected_detail_question(payload, text):
@@ -438,3 +886,18 @@ async def chat(payload: AgentChatRequest) -> AgentChatResponse:
         ),
         cache_key=cache_key,
     )
+
+
+async def chat(payload: AgentChatRequest) -> AgentChatResponse:
+    """Return Fred's reply plus any dashboard action the UI should apply.
+
+    Prefers the LLM tool-calling agent when configured; falls back to the
+    deterministic regex parser on any error or when the LLM is disabled.
+    """
+
+    settings = get_settings()
+    if settings.openai_enabled and settings.openai_api_key:
+        live = await _run_llm_agent(payload)
+        if live is not None:
+            return live
+    return await _deterministic_chat(payload)
