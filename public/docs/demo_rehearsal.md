@@ -7,21 +7,22 @@ file is the time-boxed walkthrough plus rehearsal log appendix.
 ## Preconditions
 
 - Python 3.13.2 active in the shell (`python3 --version`).
-- Postgres reachable on `localhost:5432`. Boot it via Docker if needed:
-  `docker run --rm -d --name loadstar-pg -p 5432:5432 -e POSTGRES_USER=loadstar -e POSTGRES_PASSWORD=loadstar -e POSTGRES_DB=loadstar postgres:16`.
+- Docker available (`docker compose version`); the repo ships a
+  `docker-compose.yml` that brings up Postgres on `localhost:5432`.
 - `.env` at the repo root with `OPENAI_API_KEY` set if you want the live LLM
   pill; the demo works either way.
-- Frontend deps installed (`npm --prefix frontend install`).
+- Frontend deps installed (`cd frontend && npm install`).
 
 ## 10-step rehearsal
 
 1. **Apply schema:**
 
    ```bash
-   python3 -m backend.db.migrate
+   docker compose up -d              # Postgres on :5432
+   python3 -m backend.db.migrate     # idempotent
    ```
 
-   Confirm the four tables exist (`psql ... \dt`).
+   Confirm the four tables exist (`docker compose exec postgres psql -U loadstar -d loadstar -c '\dt'`).
 
 2. **Run the pipeline (rehydrates fixtures):**
 

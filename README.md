@@ -147,19 +147,24 @@ The checker does not print secrets. If a source is blocked, it records the fallb
 
 ## Apply The Minimal Schema
 
-Loadstar uses **Postgres only**. Boot a local instance and apply the migrations:
+Loadstar uses **Postgres only**. The repo ships a `docker-compose.yml` that
+brings up a Postgres-only stack so reviewers do not need a local Postgres
+install:
 
 ```bash
-docker run --rm -d --name loadstar-pg \
-  -p 5432:5432 \
-  -e POSTGRES_USER=loadstar \
-  -e POSTGRES_PASSWORD=loadstar \
-  -e POSTGRES_DB=loadstar \
-  postgres:16
-
-DATABASE_URL=postgresql://loadstar:loadstar@localhost:5432/loadstar \
-  python3 -m backend.db.migrate
+docker compose up -d              # Postgres on :5432, healthchecked
+python3 -m backend.db.migrate     # apply schema (uses Settings.database_url)
 ```
+
+The compose file's DSN matches the default in
+`backend/api/core/config.py::Settings.database_url`, so the API and the
+migrate command find the cluster without any extra env vars. Tear it down
+with `docker compose down -v` when you are done; the named volume is wiped
+so the next run starts from zero.
+
+If you have your own Postgres running locally (without Docker) just set
+`DATABASE_URL` in `.env` to its DSN and run `python3 -m backend.db.migrate`
+directly.
 
 The schema intentionally creates only:
 

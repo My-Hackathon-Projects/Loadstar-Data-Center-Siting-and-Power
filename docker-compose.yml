@@ -1,0 +1,38 @@
+# Loadstar local development stack.
+#
+# Brings up the only service that needs containerization for local dev:
+# Postgres. The API (`uvicorn main:app --reload`) and the frontend
+# (`npm run dev` from `frontend/`) keep running on the host so HMR, debuggers,
+# and editor tooling work without round-tripping through a container.
+#
+# Usage:
+#   docker compose up -d           # start Postgres in the background
+#   uvicorn main:app --reload      # in shell A
+#   cd frontend && npm run dev     # in shell B
+#   docker compose down -v         # stop and wipe the volume when done
+#
+# The DSN this file produces matches the default in
+# `backend/api/core/config.py::Settings.database_url` so no extra env vars
+# are required for the API to find the cluster.
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: loadstar-pg
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: loadstar
+      POSTGRES_PASSWORD: loadstar
+      POSTGRES_DB: loadstar
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U loadstar -d loadstar"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - loadstar_pg_data:/var/lib/postgresql/data
+
+volumes:
+  loadstar_pg_data:
