@@ -7,35 +7,40 @@ file is the time-boxed walkthrough plus rehearsal log appendix.
 ## Preconditions
 
 - Python 3.13.2 active in the shell (`python3 --version`).
-- Postgres reachable on `localhost:5432` (recommended) or fall back to
-  SQLite via `make migrate-sqlite`.
+- Postgres reachable on `localhost:5432`. Boot it via Docker if needed:
+  `docker run --rm -d --name loadstar-pg -p 5432:5432 -e POSTGRES_USER=loadstar -e POSTGRES_PASSWORD=loadstar -e POSTGRES_DB=loadstar postgres:16`.
 - `.env` at the repo root with `OPENAI_API_KEY` set if you want the live LLM
   pill; the demo works either way.
-- Frontend deps installed (`make setup`).
+- Frontend deps installed (`npm --prefix frontend install`).
 
 ## 10-step rehearsal
 
-1. **Apply schema:** `make migrate` (Postgres) or `make migrate-sqlite`.
-   Confirm the four tables exist (`psql ... \dt` or `sqlite3 data/loadstar.db .tables`).
+1. **Apply schema:**
+
+   ```bash
+   python3 -m backend.db.migrate
+   ```
+
+   Confirm the four tables exist (`psql ... \dt`).
 
 2. **Run the pipeline (rehydrates fixtures):**
 
    ```bash
-   make ingest-subset \
-       && make carbon-subset \
-       && make alphaearth-land-subset \
-       && make features-subset \
-       && make siting-model-subset \
-       && make features-subset
+   python3 -m backend.pipeline.subset_ingestion --countries SE,DE,IE
+   python3 -m backend.pipeline.hourly_carbon --countries SE,DE,IE
+   python3 -m backend.pipeline.alphaearth_land --countries SE,DE,IE
+   python3 -m backend.pipeline.feature_engineering --countries SE,DE,IE
+   python3 -m backend.pipeline.siting_model --countries SE,DE,IE
+   python3 -m backend.pipeline.feature_engineering --countries SE,DE,IE
    ```
 
-   The second `features-subset` rehydrates the site features artifact with
-   the freshly computed siting-model output.
+   The second `feature_engineering` rehydrates the site features artifact
+   with the freshly computed siting-model output.
 
 3. **Generate the static map overlays:**
 
    ```bash
-   make layer-assets
+   python3 -m backend.pipeline.build_layer_assets
    ```
 
    Confirm `frontend/public/layers/*.json` is populated. The SPA prefers
@@ -44,8 +49,8 @@ file is the time-boxed walkthrough plus rehearsal log appendix.
 4. **Start backend + frontend in two shells:**
 
    ```bash
-   make dev          # shell A — uvicorn on :8000
-   make frontend-dev # shell B — Vite on :5173
+   python3 -m uvicorn backend.api.main:app --reload     # shell A — :8000
+   npm --prefix frontend run dev                         # shell B — :5173
    ```
 
 5. **Open the SPA and inspect health:**
@@ -76,7 +81,7 @@ file is the time-boxed walkthrough plus rehearsal log appendix.
    show 24 hours; `solver_status` should be `optimal`.
 
 10. **Re-run the same optimize.** The second call should be visibly faster.
-    In the API logs (`make dev` shell), find the `optimize.solved` JSON
+    In the API logs (the `uvicorn` shell), find the `optimize.solved` JSON
     record with `cache_hit: true` and the same `cache_key` as the first
     call.
 
@@ -125,7 +130,7 @@ If the deck.gl + maplibre tiles fail to render in the browser:
 2. Use `curl -fsS http://127.0.0.1:8000/sites/search -X POST ...` and read
    the JSON live; the search and Pareto demos do not depend on the map.
 3. Confirm the static overlays exist: `ls -la frontend/public/layers/`.
-   Re-run `make layer-assets` if needed.
+   Re-run `python3 -m backend.pipeline.build_layer_assets` if needed.
 
 ## Recovery — if the optimizer is slow
 
@@ -133,7 +138,7 @@ The first call solves up to 11 LPs. If it feels slow:
 
 1. Confirm `scipy` is installed: `python3 -c "import scipy; print(scipy.__version__)"`.
 2. Run the second call — the LRU cache turns it into a sub-50ms response.
-3. Check `make dev` logs for the `optimize.solved` record; `solve_ms`
+3. Check `uvicorn` logs for the `optimize.solved` record; `solve_ms`
    should be sub-second on a modern laptop.
 
 ## Rehearsal log
@@ -144,10 +149,10 @@ Append one block per rehearsal pass.
 
 | Step | Result | Notes |
 |---|---|---|
-| 1 — migrate | ☑ ok | `make migrate-sqlite` applied 001 + 003. `optimization_runs` schema includes `status`, `started_at`, `completed_at`, `error_message`, `solve_ms`, `request_id`. |
+| 1 — migrate | ☑ ok | `python3 -m backend.db.migrate` applied 002 + 003 against the local Postgres. `optimization_runs` schema includes `status`, `started_at`, `completed_at`, `error_message`, `solve_ms`, `request_id`. |
 | 2 — pipeline | ☐ ok / ☐ fail | (Skipped this pass; existing artifacts already present.) |
 | 3 — layer-assets | ☑ ok | 7 files emitted under `frontend/public/layers/`. |
-| 4 — dev | ☑ ok | uvicorn on :8765 for the smoke; `make frontend-dev` deferred to live demo. |
+| 4 — dev | ☑ ok | uvicorn on :8765 for the smoke; SPA `npm --prefix frontend run dev` deferred to live demo. |
 | 5 — /health | ☑ ok | `version=0.0.0`, `git_sha=cf132ee`, `uptime_seconds=13.21`, `dependencies.postgres.status=ok`, `dependencies.redis.status=disabled`. |
 | 6 — search | ☑ ok | top region: Lulea / Boden; composite_score=0.770 |
 | 7 — detail drawer | ☐ verify in UI | Tested via API; SPA path is the rehearsal-2 task. |
@@ -156,9 +161,8 @@ Append one block per rehearsal pass.
 | 10 — cache hit (second call) | ☑ ok | second call ~10 ms; same cache_key. |
 | 11 — async + chat | ☑ ok | async POST 202 → polled status=completed, solve_ms=301.69; idempotent re-post returned same job_id; `/agent/explain` returned `source=template`, model=None (LLM disabled). |
 
-**Pass 1 verdict:** API surface and cache verified. UI walkthrough remains for pass 2 (live demo with `make frontend-dev`).
+**Pass 1 verdict:** API surface and cache verified. UI walkthrough remains for pass 2 (live demo with the SPA running).
 
 ### Pass 2 — YYYY-MM-DD HH:MM
 
 (Run during the live judges' demo. Append the same template once verified end-to-end through the SPA.)
-

@@ -1,16 +1,19 @@
 """Tests for the async optimizer endpoint.
 
+The async path persists state in `optimization_runs`, so it requires a real
+Postgres cluster. Gated on `LOADSTAR_TEST_POSTGRES_URL`: CI sets the env var
+to its Postgres service container; local devs can point it at any Postgres
+they trust to drop/recreate the four tables.
+
 `BackgroundTasks` runs synchronously inline under FastAPI's `TestClient`, so a
-GET right after the 202 already shows the completed state. We seed a temp
-SQLite DB for the test, point Settings at it via the env var, and apply the
-migrations.
+GET right after the 202 already shows the completed state.
 """
 
 from __future__ import annotations
 
-import sqlite3
+import os
 from collections.abc import Iterator
-from pathlib import Path
+from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
@@ -18,21 +21,39 @@ from fastapi.testclient import TestClient
 from backend.api.core.config import get_settings
 from backend.api.main import app
 from backend.api.services import optimizer_jobs, result_cache
-from backend.db.migrate import apply_schema
+from backend.db.connection import is_postgres
+from backend.db.migrate import apply_schema_url
+
+_POSTGRES_TEST_DSN = os.environ.get("LOADSTAR_TEST_POSTGRES_URL")
+_REASON = "Set LOADSTAR_TEST_POSTGRES_URL to run the async optimizer tests."
+
+
+def _truncate_optimization_runs(database_url: str) -> None:
+    """Reset `optimization_runs` so tests start from a known empty state."""
+
+    import psycopg
+
+    with psycopg.connect(database_url) as connection, connection.cursor() as cursor:
+        cursor.execute("TRUNCATE TABLE optimization_runs")
+        connection.commit()
 
 
 @pytest.fixture
-def client_with_db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
-    """Yield a TestClient bound to a freshly migrated SQLite database."""
+def client_with_db(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
+    """Yield a TestClient bound to the configured Postgres DSN."""
 
-    db_path = tmp_path / "loadstar.db"
-    apply_schema(db_path)
-    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path.resolve()}")
+    if not (_POSTGRES_TEST_DSN and is_postgres(_POSTGRES_TEST_DSN)):
+        pytest.skip(_REASON)
+    apply_schema_url(_POSTGRES_TEST_DSN)
+    _truncate_optimization_runs(_POSTGRES_TEST_DSN)
+    monkeypatch.setenv("DATABASE_URL", _POSTGRES_TEST_DSN)
     get_settings.cache_clear()
     result_cache.reset_result_cache_for_tests()
-    yield TestClient(app)
-    get_settings.cache_clear()
-    result_cache.reset_result_cache_for_tests()
+    try:
+        yield TestClient(app)
+    finally:
+        get_settings.cache_clear()
+        result_cache.reset_result_cache_for_tests()
 
 
 def _payload() -> dict[str, object]:
@@ -48,8 +69,6 @@ def test_async_endpoint_runs_solve_and_polls_to_completed(client_with_db: TestCl
     assert accepted["status_url"] == f"/optimize/jobs/{accepted['job_id']}"
     assert accepted["cache_key"].startswith("optimize.supply_mix:")
 
-    # BackgroundTasks runs inline under TestClient, so the row is already in
-    # its terminal state by the time we poll.
     poll = client_with_db.get(accepted["status_url"])
     assert poll.status_code == 200
     body = poll.json()
@@ -70,7 +89,7 @@ def test_async_endpoint_is_idempotent_on_cache_key(client_with_db: TestClient) -
 def test_async_endpoint_returns_failed_status_on_solver_error(
     client_with_db: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    def boom(_request: object) -> object:
+    def boom(_request: Any) -> Any:
         raise RuntimeError("simulated solver crash")
 
     monkeypatch.setattr(optimizer_jobs, "optimize_site_supply", boom)
@@ -108,20 +127,21 @@ def test_async_persists_request_id_for_correlation(client_with_db: TestClient) -
     job_id = response.json()["job_id"]
     poll = client_with_db.get(f"/optimize/jobs/{job_id}")
     body = poll.json()
-    # One of the two requests carried the explicit id; the row stores the
-    # enqueue request's id so logs and DB rows can be correlated.
     assert body["request_id"] == "rehearsal-step-10"
 
 
-def test_async_row_lands_in_optimization_runs(client_with_db: TestClient, tmp_path: Path) -> None:
+def test_async_row_lands_in_optimization_runs(client_with_db: TestClient) -> None:
+    import psycopg
+
     response = client_with_db.post("/optimize/supply-mix/async", json=_payload())
     job_id = response.json()["job_id"]
-    db_path = tmp_path / "loadstar.db"
-    with sqlite3.connect(db_path) as connection:
-        row = connection.execute(
-            "SELECT run_id, status, cache_key FROM optimization_runs WHERE run_id = ?",
+    assert _POSTGRES_TEST_DSN is not None
+    with psycopg.connect(_POSTGRES_TEST_DSN) as connection, connection.cursor() as cursor:
+        cursor.execute(
+            "SELECT run_id, status, cache_key FROM optimization_runs WHERE run_id = %s",
             (job_id,),
-        ).fetchone()
+        )
+        row = cursor.fetchone()
     assert row is not None
     assert row[0] == job_id
     assert row[1] == "completed"

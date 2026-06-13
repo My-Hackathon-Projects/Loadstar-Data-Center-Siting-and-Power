@@ -7,9 +7,9 @@ clients can poll `GET /optimize/jobs/{id}` for status and the final response.
 
 Design notes:
 
-- Job state is persisted in `optimization_runs` (Postgres or SQLite). The 003
-  migration adds `status`, `started_at`, `completed_at`, `solve_ms`,
-  `error_message`, and `request_id`.
+- Job state is persisted in `optimization_runs` (Postgres). The 003 migration
+  adds `status`, `started_at`, `completed_at`, `solve_ms`, `error_message`,
+  and `request_id`.
 - Idempotency: before inserting a new pending row, we look up any prior
   completed row for the same `cache_key` and return its job id immediately.
   Two identical async POSTs therefore produce one solve and one row.
@@ -31,7 +31,7 @@ from backend.api.core.config import get_settings
 from backend.api.middleware.request_id import get_request_id
 from backend.api.services.cache_keys import build_cache_key
 from backend.api.services.optimizer_service import optimize_site_supply
-from backend.db.connection import get_connection, is_postgres
+from backend.db.connection import get_connection
 from backend.engine.contracts import (
     ApiErrorDetail,
     OptimizationJobAccepted,
@@ -104,7 +104,7 @@ def run_supply_mix_job(job_id: str, request: OptimizeRequest) -> None:
         settings.database_url,
         job_id=job_id,
         status="running",
-        started_at=_format_timestamp(settings.database_url, started),
+        started_at=started.isoformat(),
     )
     try:
         response = optimize_site_supply(request)
@@ -124,7 +124,7 @@ def run_supply_mix_job(job_id: str, request: OptimizeRequest) -> None:
             settings.database_url,
             job_id=job_id,
             status="failed",
-            completed_at=_format_timestamp(settings.database_url, datetime.now(UTC)),
+            completed_at=datetime.now(UTC).isoformat(),
             error_message=message,
             solve_ms=elapsed_ms,
         )
@@ -135,7 +135,7 @@ def run_supply_mix_job(job_id: str, request: OptimizeRequest) -> None:
         settings.database_url,
         job_id=job_id,
         status="completed",
-        completed_at=_format_timestamp(settings.database_url, datetime.now(UTC)),
+        completed_at=datetime.now(UTC).isoformat(),
         result_payload=response.model_dump(mode="json"),
         solve_ms=elapsed_ms,
     )
@@ -161,19 +161,13 @@ def get_job(job_id: str) -> OptimizationJobStatus | None:
 
 
 def _find_completed_job_id(database_url: str, cache_key: str) -> str | None:
-    placeholder = "?" if not is_postgres(database_url) else "%s"
     query = (
         "SELECT run_id FROM optimization_runs "
-        f"WHERE cache_key = {placeholder} AND status = 'completed' LIMIT 1"
+        "WHERE cache_key = %s AND status = 'completed' LIMIT 1"
     )
-    with get_connection(database_url) as connection:
-        if is_postgres(database_url):
-            with connection.cursor() as cursor:
-                cursor.execute(query, (cache_key,))
-                row = cursor.fetchone()
-        else:
-            cursor = connection.execute(query, (cache_key,))
-            row = cursor.fetchone()
+    with get_connection(database_url) as connection, connection.cursor() as cursor:
+        cursor.execute(query, (cache_key,))
+        row = cursor.fetchone()
     if row is None:
         return None
     return str(row[0])
@@ -189,15 +183,14 @@ def _insert_pending(
     cache_key: str,
     request_id: str | None,
 ) -> None:
-    placeholder = "?" if not is_postgres(database_url) else "%s"
     query = (
         "INSERT INTO optimization_runs ("
         "run_id, cell_id, load_mw, request_json, result_json, cache_key, "
         "status, started_at, request_id"
-        f") VALUES ({', '.join([placeholder] * 9)})"
+        ") VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
     )
     request_blob = json.dumps(request_payload, sort_keys=True)
-    started_at = _format_timestamp(database_url, datetime.now(UTC))
+    started_at = datetime.now(UTC).isoformat()
     args = (
         job_id,
         cell_id,
@@ -210,13 +203,9 @@ def _insert_pending(
         request_id,
     )
     with get_connection(database_url) as connection:
-        if is_postgres(database_url):
-            with connection.cursor() as cursor:
-                cursor.execute(query, args)
-            connection.commit()
-        else:
-            connection.execute(query, args)
-            connection.commit()
+        with connection.cursor() as cursor:
+            cursor.execute(query, args)
+        connection.commit()
 
 
 def _update_status(
@@ -230,34 +219,29 @@ def _update_status(
     error_message: str | None = None,
     solve_ms: float | None = None,
 ) -> None:
-    placeholder = "?" if not is_postgres(database_url) else "%s"
-    fields: list[str] = ["status = " + placeholder]
+    fields: list[str] = ["status = %s"]
     args: list[Any] = [status]
     if started_at is not None:
-        fields.append("started_at = " + placeholder)
+        fields.append("started_at = %s")
         args.append(started_at)
     if completed_at is not None:
-        fields.append("completed_at = " + placeholder)
+        fields.append("completed_at = %s")
         args.append(completed_at)
     if result_payload is not None:
-        fields.append("result_json = " + placeholder)
+        fields.append("result_json = %s")
         args.append(json.dumps(result_payload, sort_keys=True))
     if error_message is not None:
-        fields.append("error_message = " + placeholder)
+        fields.append("error_message = %s")
         args.append(error_message)
     if solve_ms is not None:
-        fields.append("solve_ms = " + placeholder)
+        fields.append("solve_ms = %s")
         args.append(solve_ms)
     args.append(job_id)
-    query = "UPDATE optimization_runs SET " + ", ".join(fields) + f" WHERE run_id = {placeholder}"
+    query = "UPDATE optimization_runs SET " + ", ".join(fields) + " WHERE run_id = %s"
     with get_connection(database_url) as connection:
-        if is_postgres(database_url):
-            with connection.cursor() as cursor:
-                cursor.execute(query, args)
-            connection.commit()
-        else:
-            connection.execute(query, args)
-            connection.commit()
+        with connection.cursor() as cursor:
+            cursor.execute(query, args)
+        connection.commit()
 
 
 def _select_row(database_url: str, *, job_id: str) -> dict[str, Any] | None:
@@ -272,19 +256,13 @@ def _select_row(database_url: str, *, job_id: str) -> dict[str, Any] | None:
         "solve_ms",
         "request_id",
     )
-    placeholder = "?" if not is_postgres(database_url) else "%s"
     query = (
-        f"SELECT {', '.join(columns)} FROM optimization_runs "
-        f"WHERE run_id = {placeholder}"
+        f"SELECT {', '.join(columns)} FROM optimization_runs "  # noqa: S608
+        "WHERE run_id = %s"
     )
-    with get_connection(database_url) as connection:
-        if is_postgres(database_url):
-            with connection.cursor() as cursor:
-                cursor.execute(query, (job_id,))
-                row = cursor.fetchone()
-        else:
-            cursor = connection.execute(query, (job_id,))
-            row = cursor.fetchone()
+    with get_connection(database_url) as connection, connection.cursor() as cursor:
+        cursor.execute(query, (job_id,))
+        row = cursor.fetchone()
     if row is None:
         return None
     return dict(zip(columns, row, strict=False))
@@ -315,14 +293,6 @@ def _row_to_status(row: dict[str, Any]) -> OptimizationJobStatus:
         result=result_payload,
         error=error,
     )
-
-
-def _format_timestamp(database_url: str, value: datetime) -> str:
-    """SQLite stores TEXT; Postgres parses ISO 8601 into TIMESTAMPTZ for us."""
-
-    if is_postgres(database_url):
-        return value.isoformat()
-    return value.isoformat()
 
 
 def _stringify_timestamp(value: object) -> str | None:

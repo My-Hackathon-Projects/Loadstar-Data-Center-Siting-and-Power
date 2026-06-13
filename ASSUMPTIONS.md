@@ -102,7 +102,7 @@ Technology emissions factors for the preferred ENTSO-E method are stored in each
   `fallback: true` and `active_method: "transparent_composite"`.
 - **Ember hourly carbon:** preferred path is ENTSO-E generation mix ×
   emissions factors when an ENTSO-E JSON file is provided to
-  `make carbon-subset`. Fallback is the Ember monthly carbon broadcast
+  `python3 -m backend.pipeline.hourly_carbon`. Fallback is the Ember monthly carbon broadcast
   (`active_method: "ember_monthly_repeat"`).
 - **OpenAI explanation:** `/agent/explain` calls the OpenAI Responses API
   when `LOADSTAR_LLM_ENABLED=true` and `OPENAI_API_KEY` is set. On any

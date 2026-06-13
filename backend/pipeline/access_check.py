@@ -10,12 +10,10 @@ from __future__ import annotations
 import json
 import os
 import subprocess
-import urllib.error
-import urllib.request
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated, Any, cast
 
 import typer
 
@@ -35,21 +33,6 @@ class SourceDecision:
     evidence: str
     downstream_implication: str
     fallback: str | None = None
-
-
-def _fetch_json(
-    url: str,
-    headers: dict[str, str] | None = None,
-    timeout: int = 20,
-) -> tuple[int, Any]:
-    request = urllib.request.Request(url, headers=headers or {})
-    try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            return response.status, json.loads(response.read().decode("utf-8"))
-    except urllib.error.HTTPError as exc:
-        return exc.code, {"error": exc.reason}
-    except Exception as exc:  # noqa: BLE001 - surfaced as decision-record evidence.
-        return 0, {"error": str(exc)}
 
 
 def _curl_json(
@@ -74,18 +57,6 @@ def _curl_json(
     except json.JSONDecodeError:
         payload = {"body_preview": body[:500]}
     return status, payload
-
-
-def _fetch_head(url: str, timeout: int = 20) -> tuple[int, str]:
-    request = urllib.request.Request(url, method="HEAD")
-    try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            final_url = response.geturl()
-            return response.status, final_url
-    except urllib.error.HTTPError as exc:
-        return exc.code, exc.reason
-    except Exception as exc:  # noqa: BLE001 - surfaced as decision-record evidence.
-        return 0, str(exc)
 
 
 def _curl_head(url: str, timeout: int = 20) -> tuple[int, str]:
@@ -115,10 +86,14 @@ def _curl_head(url: str, timeout: int = 20) -> tuple[int, str]:
 
 
 def check_zenodo() -> SourceDecision:
-    status, payload = _curl_json(ZENODO_RECORD_URL)
-    files = payload.get("files", []) if isinstance(payload, dict) else []
+    status, raw = _curl_json(ZENODO_RECORD_URL)
+    payload: dict[str, object] = cast(dict[str, object], raw) if isinstance(raw, dict) else {}
+    raw_files = payload.get("files", [])
+    files: list[dict[str, str]] = (
+        cast(list[dict[str, str]], raw_files) if isinstance(raw_files, list) else []
+    )
     required = {"buses.csv", "lines.csv"}
-    present = {item.get("key") for item in files}
+    present: set[str] = {item.get("key", "") for item in files}
     if status == 200 and required.issubset(present):
         return SourceDecision(
             source="Zenodo PyPSA-Eur record 18619025",
@@ -260,7 +235,7 @@ def check_earth_engine() -> SourceDecision:
             .filterDate("2024-01-01", "2025-01-01")
             .first()
         )
-        point = ee.Geometry.Point([22.1547, 65.5848])
+        point = ee.Geometry.Point([22.1547, 65.5848])  # type: ignore[reportUnknownMemberType]
         sample = image.sample(point, scale=10, numPixels=1).first().getInfo()
         if sample:
             return SourceDecision(

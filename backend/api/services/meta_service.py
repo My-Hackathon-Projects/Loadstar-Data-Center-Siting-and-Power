@@ -78,12 +78,10 @@ def _check_postgres(database_url: str) -> HealthDependency:
     """Probe the database with a `SELECT 1`, capping latency at half a second."""
 
     if not is_postgres(database_url):
-        # SQLite is local and always reachable when the file path is valid; we
-        # keep the same shape so the response is uniform.
         return HealthDependency(
-            status="ok",
-            detail="sqlite",
-            latency_ms=0.0,
+            status="unreachable",
+            detail=f"non-postgres scheme: {database_url[:24]!r}",
+            latency_ms=None,
         )
     started = time.perf_counter()
     try:

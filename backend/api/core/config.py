@@ -32,10 +32,12 @@ class Settings(BaseSettings):
         default_factory=lambda: ["http://127.0.0.1:5173", "http://localhost:5173"],
     )
 
-    # SQLite is the dev default; set DATABASE_URL in `.env` to a Postgres DSN
-    # such as `postgresql+psycopg://loadstar:loadstar@localhost:5432/loadstar`
-    # when the live Postgres switch lands.
-    database_url: str = Field(default=f"sqlite:///{ROOT_DIR / 'data' / 'loadstar.db'}")
+    # Postgres DSN. Set DATABASE_URL in `.env` to your local cluster, e.g.
+    # `postgresql://loadstar:loadstar@localhost:5432/loadstar`. The default below
+    # matches the docker-run snippet in README; override it as needed.
+    database_url: str = Field(
+        default="postgresql://loadstar:loadstar@localhost:5432/loadstar",
+    )
 
     # Optional Redis for the result-cache layer. When unset, the optimizer cache
     # falls back to the in-process LRU. See `backend/api/services/result_cache.py`.

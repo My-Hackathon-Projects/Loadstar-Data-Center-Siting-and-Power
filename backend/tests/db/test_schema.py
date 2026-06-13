@@ -1,103 +1,37 @@
+"""Schema migration tests.
+
+The Loadstar API uses Postgres only. These tests apply the migrations against
+a live Postgres cluster pointed at by `LOADSTAR_TEST_POSTGRES_URL`. CI sets
+the env var to its Postgres service container; local devs can point it at any
+Postgres they trust to drop and recreate four tables.
+
+Tests are skipped when no Postgres URL is configured so `pytest` can run on
+machines without a Postgres install.
+"""
+
+from __future__ import annotations
+
 import os
-import sqlite3
 
 import pytest
 
 from backend.db.connection import is_postgres
-from backend.db.migrate import apply_schema, apply_schema_url
-
-
-def test_initial_schema_creates_only_four_product_tables(tmp_path) -> None:
-    database_path = tmp_path / "loadstar.db"
-    apply_schema(database_path)
-
-    with sqlite3.connect(database_path) as connection:
-        rows = connection.execute(
-            """
-            SELECT name
-            FROM sqlite_master
-            WHERE type = 'table'
-            AND name NOT LIKE 'sqlite_%'
-            ORDER BY name
-            """
-        ).fetchall()
-
-    assert [row[0] for row in rows] == [
-        "h3_cells",
-        "hourly_energy",
-        "optimization_runs",
-        "site_features",
-    ]
-
-
-def test_initial_schema_accepts_fixture_shaped_site_features(tmp_path) -> None:
-    database_path = tmp_path / "loadstar.db"
-    apply_schema(database_path)
-
-    geom_json = '{"type":"Point","coordinates":[22.1547,65.5848]}'
-    with sqlite3.connect(database_path) as connection:
-        connection.execute(
-            """
-            INSERT INTO h3_cells (
-                cell_id, geom_geojson, latitude, longitude, country_code, region_name, resolution
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
-            """,
-            ("851f25d7fffffff", geom_json, 65.5848, 22.1547, "SE", "Lulea / Boden", 5),
-        )
-        connection.execute(
-            """
-            INSERT INTO site_features (
-                cell_id, mean_price_eur_mwh, price_volatility, carbon_intensity_g_kwh,
-                congestion_index, headroom_mw, dist_hv_substation_km, dist_fiber_km,
-                dist_ixp_km, latency_proxy_ms, solar_cf, wind_cf, water_dist_km,
-                cooling_degree_proxy, buildable_fraction, dc_similarity, lightgbm_score,
-                shap_values_json, exclusion_flag
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                "851f25d7fffffff",
-                34,
-                17,
-                24,
-                0.22,
-                540,
-                7.2,
-                18.4,
-                710,
-                14.8,
-                0.10,
-                0.42,
-                3.4,
-                0.18,
-                0.72,
-                0.81,
-                0.79,
-                '{"headroom_mw":0.22}',
-                0,
-            ),
-        )
-        count = connection.execute("SELECT COUNT(*) FROM site_features").fetchone()[0]
-
-    assert count == 1
-
+from backend.db.migrate import apply_schema_url
 
 _POSTGRES_TEST_DSN = os.environ.get("LOADSTAR_TEST_POSTGRES_URL")
+_REASON = "Set LOADSTAR_TEST_POSTGRES_URL to run the Postgres schema tests."
 
 
 @pytest.mark.skipif(
     not (_POSTGRES_TEST_DSN and is_postgres(_POSTGRES_TEST_DSN)),
-    reason="Set LOADSTAR_TEST_POSTGRES_URL to run the live Postgres schema test.",
+    reason=_REASON,
 )
 def test_postgres_schema_applies_cleanly() -> None:
-    """Apply the Postgres schema against a real cluster.
-
-    Skipped unless `LOADSTAR_TEST_POSTGRES_URL` is set. CI sets it to point at
-    the workflow's Postgres service container; local devs can point it at any
-    Postgres they trust to drop and recreate four tables.
-    """
+    """Apply the migrations against a real cluster and confirm the four tables exist."""
 
     import psycopg
 
+    assert _POSTGRES_TEST_DSN is not None  # mypy/pyright narrowing for the skip guard.
     apply_schema_url(_POSTGRES_TEST_DSN)
     with psycopg.connect(_POSTGRES_TEST_DSN) as connection, connection.cursor() as cursor:
         cursor.execute(
@@ -112,3 +46,41 @@ def test_postgres_schema_applies_cleanly() -> None:
     assert {"h3_cells", "hourly_energy", "optimization_runs", "site_features"} <= set(
         table_names
     )
+
+
+@pytest.mark.skipif(
+    not (_POSTGRES_TEST_DSN and is_postgres(_POSTGRES_TEST_DSN)),
+    reason=_REASON,
+)
+def test_postgres_schema_includes_optimization_runs_status_columns() -> None:
+    """The 003 migration adds job-state columns; assert they all land."""
+
+    import psycopg
+
+    assert _POSTGRES_TEST_DSN is not None
+    apply_schema_url(_POSTGRES_TEST_DSN)
+    with psycopg.connect(_POSTGRES_TEST_DSN) as connection, connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT column_name FROM information_schema.columns
+            WHERE table_schema = 'public' AND table_name = 'optimization_runs'
+            ORDER BY column_name
+            """
+        )
+        columns = {row[0] for row in cursor.fetchall()}
+    expected = {
+        "run_id",
+        "cell_id",
+        "load_mw",
+        "request_json",
+        "result_json",
+        "cache_key",
+        "created_at",
+        "status",
+        "started_at",
+        "completed_at",
+        "error_message",
+        "solve_ms",
+        "request_id",
+    }
+    assert expected <= columns

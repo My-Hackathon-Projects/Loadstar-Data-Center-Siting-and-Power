@@ -62,7 +62,7 @@ python3 -m uvicorn backend.api.main:app --reload
 Start the frontend app in another shell:
 
 ```bash
-make frontend-dev
+npm --prefix frontend run dev
 ```
 
 Then open the Vite URL printed by npm, normally:
@@ -116,7 +116,7 @@ The frontend uses `frontend/src/lib/queries.ts` for all server calls. Components
 Frontend API types are generated from the FastAPI OpenAPI schema into `frontend/src/types/openapi.ts`. Start the API first, then run:
 
 ```bash
-make frontend-types
+npm --prefix frontend run generate:types
 ```
 
 `frontend/src/types/api.ts` re-exports aliases from the generated schema so UI code does not hand-maintain OpenAPI-derived shapes.
@@ -142,9 +142,7 @@ The checker does not print secrets. If a source is blocked, it records the fallb
 
 ## Apply The Minimal Schema
 
-The schema applies to either SQLite (offline path) or Postgres (CI default and recommended local stack). The migration tool picks the dialect from `DATABASE_URL`.
-
-Postgres (recommended local dev):
+Loadstar uses **Postgres only**. Boot a local instance and apply the migrations:
 
 ```bash
 docker run --rm -d --name loadstar-pg \
@@ -154,13 +152,8 @@ docker run --rm -d --name loadstar-pg \
   -e POSTGRES_DB=loadstar \
   postgres:16
 
-DATABASE_URL=postgresql://loadstar:loadstar@localhost:5432/loadstar make migrate
-```
-
-SQLite (offline / no Docker):
-
-```bash
-make migrate-sqlite
+DATABASE_URL=postgresql://loadstar:loadstar@localhost:5432/loadstar \
+  python3 -m backend.db.migrate
 ```
 
 The schema intentionally creates only:
@@ -170,7 +163,7 @@ The schema intentionally creates only:
 - `hourly_energy`
 - `optimization_runs`
 
-Later ingestion issues should add their own tables when they populate them. The Postgres SQL lives in `backend/db/002_postgres.sql`; the SQLite SQL lives in `backend/db/001_initial.sql`. They are kept structurally identical apart from the `BIGSERIAL` vs `INTEGER PRIMARY KEY` choice on `hourly_energy.id` and the timestamp default expressions.
+Later ingestion issues should add their own tables when they populate them. The Postgres SQL lives in `backend/db/002_postgres.sql`; the additive 003 migration adds job-state columns to `optimization_runs` (`status`, `started_at`, `completed_at`, `solve_ms`, `error_message`, `request_id`).
 
 ## Run The Subset Ingestion Pipeline
 
@@ -246,9 +239,12 @@ The command writes `siting_model_subset.json` and `eval/siting_model_metrics.jso
 ## Validation
 
 ```bash
-make lint
-make typecheck
-make test
+python3 -m ruff check backend
+python3 -m pyright backend/api backend/engine backend/pipeline
+python3 -m pytest
+npm --prefix frontend run lint
+npm --prefix frontend run typecheck
+npm --prefix frontend run test
 ```
 
 For a Python-only check while the frontend dependencies are not installed yet:
@@ -341,7 +337,7 @@ contributors can see the score breakdown without running the pipeline:
   AlphaEarth land suitability metrics. Current run uses the fixture proxy
   (`source_status: "fallback"`) since `EARTHENGINE_PROJECT` is unset; held-out
   buildable accuracy is 0.25 (n=4) by construction. Set `EARTHENGINE_PROJECT`
-  and re-run `make alphaearth-land-subset` to populate real metrics.
+  and re-run `python3 -m backend.pipeline.alphaearth_land --countries SE,DE,IE` to populate real metrics.
 
 Both files are deterministic given `DETERMINISTIC_SEED = 20260612`.
 
@@ -360,7 +356,7 @@ the pipelines read from carry their own terms:
 | Earth Engine + AlphaEarth | Land suitability | Earth Engine ToS | Transparent composite (set `EARTHENGINE_PROJECT` to enable) |
 | OpenAI Responses API | Chat-bubble explanations | OpenAI ToS | Deterministic template (set `LOADSTAR_LLM_ENABLED=true` and `OPENAI_API_KEY` to enable) |
 
-The access-check tool (`make pipeline-subset`) probes each external source
+The access-check tool (`python3 -m backend.pipeline.access_check --write public/docs/access_decisions.md`) probes each external source
 without printing secrets and writes the live status to
 [`public/docs/access_decisions.md`](public/docs/access_decisions.md).
 
@@ -370,10 +366,10 @@ The full 10-step rehearsal lives in
 [`public/docs/demo_rehearsal.md`](public/docs/demo_rehearsal.md). High-level
 outline (run twice before the judges' session):
 
-1. `make migrate` (or `make migrate-sqlite`).
-2. Pipeline rehydration — `make ingest-subset && make carbon-subset && make alphaearth-land-subset && make features-subset && make siting-model-subset && make features-subset`.
-3. `make layer-assets` — write static overlays.
-4. `make dev` (shell A) + `make frontend-dev` (shell B).
+1. Apply the schema: `python3 -m backend.db.migrate`.
+2. Pipeline rehydration: run `python3 -m backend.pipeline.subset_ingestion`, then `hourly_carbon`, `alphaearth_land`, `feature_engineering`, `siting_model`, and `feature_engineering` again — each with `--countries SE,DE,IE`.
+3. Build static overlays: `python3 -m backend.pipeline.build_layer_assets`.
+4. `python3 -m uvicorn backend.api.main:app --reload` (shell A) + `npm --prefix frontend run dev` (shell B).
 5. Inspect `/health` — confirms version, git_sha, dependency status.
 6. Search 280 MW training, top_k=5 — Lulea/Boden ranks first.
 7. Inspect ranked detail; pin Lulea/Boden + Frankfurt West.

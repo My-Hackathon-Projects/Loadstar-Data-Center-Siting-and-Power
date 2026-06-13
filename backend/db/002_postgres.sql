@@ -1,8 +1,7 @@
--- Postgres equivalent of 001_initial.sql.
--- Same column names, types, NULL/UNIQUE constraints, default expressions; only
--- the surrogate key on hourly_energy and the timestamp default differ between
--- the SQLite (001_initial.sql) and the Postgres path. Migration tooling picks
--- the right file at runtime based on `database_url` scheme.
+-- Loadstar API uses Postgres only.
+-- Same column names, types, NULL/UNIQUE constraints, default expressions, and
+-- four tables that match the application contracts: h3_cells, site_features,
+-- hourly_energy, optimization_runs.
 
 CREATE TABLE IF NOT EXISTS h3_cells (
     cell_id TEXT PRIMARY KEY,
@@ -16,7 +15,10 @@ CREATE TABLE IF NOT EXISTS h3_cells (
 );
 
 CREATE TABLE IF NOT EXISTS site_features (
-    cell_id TEXT PRIMARY KEY REFERENCES h3_cells(cell_id),
+    -- `site_features` shares the cell_id with `h3_cells`. The FK only fires
+    -- when both rows are populated; the API treats fixtures as the source of
+    -- truth, so the FK is informational rather than load-bearing.
+    cell_id TEXT PRIMARY KEY REFERENCES h3_cells(cell_id) ON DELETE CASCADE,
     mean_price_eur_mwh DOUBLE PRECISION NOT NULL,
     price_volatility DOUBLE PRECISION NOT NULL,
     carbon_intensity_g_kwh DOUBLE PRECISION NOT NULL,
@@ -40,7 +42,6 @@ CREATE TABLE IF NOT EXISTS site_features (
 );
 
 CREATE TABLE IF NOT EXISTS hourly_energy (
-    -- Postgres uses BIGSERIAL where SQLite uses INTEGER PRIMARY KEY (ROWID).
     id BIGSERIAL PRIMARY KEY,
     zone_id TEXT NOT NULL,
     timestamp_utc TIMESTAMPTZ NOT NULL,
@@ -53,9 +54,13 @@ CREATE TABLE IF NOT EXISTS hourly_energy (
     UNIQUE(zone_id, timestamp_utc)
 );
 
+-- `optimization_runs` carries every async optimizer job. The FK to `h3_cells`
+-- was dropped in the Postgres switch because the API serves fixture cells
+-- without first persisting them; the column still records the cell_id for
+-- analysis and is indexed for cache_key idempotency.
 CREATE TABLE IF NOT EXISTS optimization_runs (
     run_id TEXT PRIMARY KEY,
-    cell_id TEXT NOT NULL REFERENCES h3_cells(cell_id),
+    cell_id TEXT NOT NULL,
     load_mw DOUBLE PRECISION NOT NULL,
     request_json TEXT NOT NULL,
     result_json TEXT NOT NULL,

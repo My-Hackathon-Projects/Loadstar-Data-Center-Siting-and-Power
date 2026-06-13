@@ -15,10 +15,10 @@ flowchart LR
     LRU["LruResultCache<br/>(in-process)"]
     BG["BackgroundTasks"]
     Engine["engine.optimizer<br/>(scipy.linprog method=highs)"]
-    OptRuns[("optimization_runs<br/>Postgres / SQLite")]
-    Artifacts[("source_artifacts.db<br/>SQLite, read-only API")]
+    OptRuns[("optimization_runs<br/>Postgres")]
+    Artifacts[("source_artifacts.db<br/>local SQLite ledger,<br/>read-only API")]
     OpenAI[("OpenAI Responses API<br/>(optional)")]
-    StaticLayers[/"frontend/public/layers/*.json<br/>(make layer-assets)"/]
+    StaticLayers[/"frontend/public/layers/*.json<br/>(python -m backend.pipeline.build_layer_assets)"/]
 
     SPA -->|REST + X-Request-ID| API
     API --> ReqId
@@ -63,18 +63,22 @@ SHA-256 of the JSON payload, record count, and any fallback note.
 
 ## Database schema
 
-Four tables, identical names across SQLite (`backend/db/001_initial.sql`) and
-Postgres (`backend/db/002_postgres.sql`):
+Four Postgres tables, defined in `backend/db/002_postgres.sql`:
 
 - `h3_cells` — H3 cell geometry, country, region, resolution.
 - `site_features` — fixture-shaped per-cell facts plus the LightGBM viability
   score and SHAP-style contributions.
 - `hourly_energy` — one row per zone per hour for price + carbon profiles.
 - `optimization_runs` — every async optimizer job. Migration
-  `003_optimization_runs_status*.sql` adds:
+  `003_optimization_runs_status.sql` adds:
   - `status` (`pending` / `running` / `completed` / `failed`)
   - `started_at`, `completed_at`, `solve_ms`
   - `error_message`, `request_id`
+
+The pipeline-metadata file `data/processed/source_artifacts.db` is a separate
+local SQLite ledger written by every pipeline CLI run (single writer,
+file-based, no service required) and read by the `/meta/source-artifacts`
+endpoint. It is intentional and not the application DB.
 
 ## Observability
 
