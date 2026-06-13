@@ -1,5 +1,5 @@
 interface VoiceBarsProps {
-  /** When true the bars pulse; otherwise they rest, calm. Purely decorative — never audio-driven. */
+  /** When true the bars pulse; otherwise they rest, calm. */
   active?: boolean;
   bars?: number;
   className?: string;
@@ -7,8 +7,7 @@ interface VoiceBarsProps {
 
 /**
  * Fred's presence: thin amber bars pulsing via CSS keyframes. Used in the intro
- * greeting and the dashboard chat panel. There is no audio anywhere; the motion
- * stands in for a voice.
+ * greeting and the dashboard chat panel.
  */
 export function VoiceBars({
   active = false,

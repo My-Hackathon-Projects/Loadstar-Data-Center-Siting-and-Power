@@ -75,6 +75,55 @@ def test_chat_country_filter_narrows_results(
     assert "Sweden" in body["message"]
 
 
+def test_chat_energy_manager_prompt_runs_germany_search(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("LOADSTAR_LLM_ENABLED", raising=False)
+    client = TestClient(app)
+
+    body = _post(
+        client,
+        "I am the energy manager and want to build a data center for 280 MW in Germany.",
+    )
+    action = body["action"]
+
+    assert action["type"] == "search"
+    assert action["applied"]["power_mw"] == 280
+    assert action["applied"]["country_filter"] == ["DE"]
+    assert "Sure" in body["message"]
+
+
+def test_chat_greeting_waits_without_dashboard_action(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("LOADSTAR_LLM_ENABLED", raising=False)
+    client = TestClient(app)
+
+    body = _post(client, "hello fred")
+
+    assert body["source"] == "template"
+    assert body["message"] == "Hello, my name is Fred. How can I help you?"
+    assert body["action"]["type"] == "none"
+    assert body["action"]["search"] is None
+    assert body["action"]["applied"] is None
+
+
+def test_chat_detail_follow_up_explains_selected_site(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("LOADSTAR_LLM_ENABLED", raising=False)
+    client = TestClient(app)
+    first_search = _post(client, "find sites in Sweden")
+    selected_cell_id = first_search["action"]["focus_cell_id"]
+    selected_region = first_search["action"]["search"]["results"][0]["site"]["region_name"]
+
+    body = _post(client, "show me the details", selected_cell_id=selected_cell_id)
+
+    assert body["source"] == "template"
+    assert body["action"]["type"] == "none"
+    assert selected_region in body["message"]
+
+
 def test_chat_mw_override_can_empty_results(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

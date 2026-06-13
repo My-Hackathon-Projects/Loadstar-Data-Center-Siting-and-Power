@@ -291,13 +291,28 @@ class ExplainResponse(BaseModel):
     cache_key: str
 
 
+class AgentChatTurn(BaseModel):
+    """One recent chat turn sent back to Fred for conversational context."""
+
+    speaker: Literal["assistant", "user"]
+    body: str = Field(min_length=1, max_length=1200)
+
+
+def _empty_agent_chat_history() -> list[AgentChatTurn]:
+    return []
+
+
 class AgentChatRequest(BaseModel):
-    """Payload for `POST /agent/chat`. Fred runs a real search from a free-text ask."""
+    """Payload for `POST /agent/chat`. Fred responds to a free-text ask."""
 
     message: str
     power_mw: float = Field(gt=0)
     workload_type: Literal["training", "inference", "mixed"] = "training"
     selected_cell_id: str | None = None
+    history: list[AgentChatTurn] = Field(
+        default_factory=_empty_agent_chat_history,
+        max_length=12,
+    )
 
 
 class AgentAction(BaseModel):

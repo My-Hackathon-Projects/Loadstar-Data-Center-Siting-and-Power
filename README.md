@@ -166,6 +166,10 @@ If you have your own Postgres running locally (without Docker) just set
 `DATABASE_URL` in `.env` to its DSN and run `python3 -m backend.db.migrate`
 directly.
 
+Vercel/Supabase integrations expose `POSTGRES_URL`; the API uses it as a
+fallback when `DATABASE_URL` is not set. Keep using `DATABASE_URL` when you
+need to explicitly override the integration-provided DSN.
+
 The schema intentionally creates only:
 
 - `h3_cells`

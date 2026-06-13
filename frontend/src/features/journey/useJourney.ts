@@ -12,7 +12,6 @@ import {
 const PHASE_DURATION_MS: Partial<Record<JourneyPhase, number>> = {
   flight: JOURNEY_TIMING.flightMs,
   arrival: JOURNEY_TIMING.arrivalMs,
-  greeting: JOURNEY_TIMING.greetingMs,
 };
 
 function prefersReducedMotion(): boolean {
@@ -31,6 +30,7 @@ export interface Journey {
   phase: JourneyPhase;
   reducedMotion: boolean;
   begin: () => void;
+  finish: () => void;
   skip: () => void;
 }
 
@@ -66,6 +66,7 @@ export function useJourney(): Journey {
     phase: state.phase,
     reducedMotion: state.reducedMotion,
     begin: () => dispatch({ type: "BEGIN" }),
+    finish: () => dispatch({ type: "ADVANCE" }),
     skip: () => dispatch({ type: "SKIP" }),
   };
 }

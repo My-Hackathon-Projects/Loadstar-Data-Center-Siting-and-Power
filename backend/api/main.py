@@ -15,7 +15,7 @@ from datetime import UTC, datetime
 from importlib import metadata as importlib_metadata
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -98,19 +98,16 @@ if settings.cors_origins:
     )
 app.add_middleware(RequestIdMiddleware)
 
-app.include_router(meta.router)
-app.include_router(sites.router)
-app.include_router(optimizer.router)
-app.include_router(agent.router)
-
 web_dist_dir = Path(settings.web_dist_dir)
-if web_dist_dir.exists() and (web_dist_dir / "assets").exists():
-    app.mount("/assets", StaticFiles(directory=web_dist_dir / "assets"), name="assets")
+app.mount("/assets", StaticFiles(directory=web_dist_dir / "assets", check_dir=False), name="assets")
+app.mount("/fonts", StaticFiles(directory=web_dist_dir / "fonts", check_dir=False), name="fonts")
+app.mount("/geo", StaticFiles(directory=web_dist_dir / "geo", check_dir=False), name="geo")
+
+_FRONTEND_ROUTES = frozenset({"app", "tech", "thanks"})
 
 
-@app.get("/", include_in_schema=False, response_model=None)
-def index() -> FileResponse | dict[str, str]:
-    """Serve the built Vite app when available, otherwise point developers to Vite."""
+def _web_index() -> FileResponse | dict[str, str]:
+    """Serve the built Vite entrypoint, or a local-development API message."""
 
     index_path = web_dist_dir / "index.html"
     if index_path.exists():
@@ -122,6 +119,39 @@ def index() -> FileResponse | dict[str, str]:
         ),
         "docs": "/docs",
     }
+
+
+@app.get("/layers/{layer_name}.json", include_in_schema=False)
+def static_layer(layer_name: str) -> FileResponse:
+    """Serve prebuilt layer overlays without shadowing the live `/layers/{name}` API."""
+
+    layer_path = web_dist_dir / "layers" / f"{layer_name}.json"
+    if not layer_path.exists():
+        raise HTTPException(status_code=404, detail="Layer asset not found")
+    return FileResponse(layer_path)
+
+
+app.include_router(meta.router)
+app.include_router(sites.router)
+app.include_router(optimizer.router)
+app.include_router(agent.router)
+
+
+@app.get("/", include_in_schema=False, response_model=None)
+def index() -> FileResponse | dict[str, str]:
+    """Serve the built Vite app when available, otherwise point developers to Vite."""
+
+    return _web_index()
+
+
+@app.get("/{frontend_path:path}", include_in_schema=False, response_model=None)
+def frontend_route(frontend_path: str) -> FileResponse | dict[str, str]:
+    """Serve SPA routes while preserving normal 404s for unknown API paths."""
+
+    first_segment = frontend_path.split("/", 1)[0]
+    if first_segment in _FRONTEND_ROUTES:
+        return _web_index()
+    raise HTTPException(status_code=404, detail="Not Found")
 
 
 @app.get("/favicon.ico", include_in_schema=False)

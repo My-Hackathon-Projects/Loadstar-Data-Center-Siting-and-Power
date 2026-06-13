@@ -1,11 +1,12 @@
-"""Agent chat service: Fred runs a real site search from a free-text ask.
+"""Agent chat service: Fred answers free text and runs real searches when needed.
 
 The deterministic intent parser is the demo-safe default. It always builds a real
-`SearchRequest` and runs the existing engine search, so the dashboard reacts to
-every message even with no API key. When OpenAI is configured the live model only
-rephrases the reply around the real, engine-computed numbers (numeric
-faithfulness: the engine decides, the model narrates). Any LLM error falls back to
-the deterministic narration, exactly like `llm_service`.
+`SearchRequest` for siting asks and runs the existing engine search, while
+greetings and selected-site follow-ups leave the dashboard untouched. When OpenAI
+is configured the live model only rephrases the reply around the real,
+engine-computed numbers (numeric faithfulness: the engine decides, the model
+narrates). Any LLM error falls back to the deterministic narration, exactly like
+`llm_service`.
 """
 
 from __future__ import annotations
@@ -16,12 +17,13 @@ from typing import Any
 
 from backend.api.core.config import get_settings
 from backend.api.services.cache_keys import build_cache_key
-from backend.api.services.llm_service import extract_response_text
+from backend.api.services.llm_service import explain_site, extract_response_text
 from backend.api.services.site_service import search_site_cells
 from backend.engine.contracts import (
     AgentAction,
     AgentChatRequest,
     AgentChatResponse,
+    ExplainRequest,
     ExplainSource,
     RankedSite,
     SearchRequest,
@@ -102,6 +104,44 @@ _EMPHASIS: tuple[tuple[tuple[str, ...], str], ...] = (
 
 _EMPHASIS_MULTIPLIER = 3.0
 
+_WORKLOAD_TERMS = ("training", "inference", "mixed")
+
+_SEARCH_INTENT_TERMS = (
+    "build",
+    "campus",
+    "capacity",
+    "candidate",
+    "data center",
+    "datacenter",
+    "details",
+    "find",
+    "location",
+    "recommend",
+    "search",
+    "show",
+    "site",
+    "where",
+)
+
+_DETAIL_INTENT_TERMS = (
+    "detail",
+    "explain",
+    "risk",
+    "tradeoff",
+    "why",
+)
+
+_HELP_INTENT_TERMS = (
+    "help",
+    "what can you do",
+    "how does this work",
+    "how do you work",
+)
+
+_THANKS_TERMS = ("thanks", "thank you", "appreciate it")
+
+FRED_INTRO = "Hello, my name is Fred. How can I help you?"
+
 
 def _parse_country_filter(text: str) -> list[str] | None:
     found: list[str] = []
@@ -125,6 +165,69 @@ def _build_weights(text: str) -> Weights:
     if total > 0:
         data = {key: value / total for key, value in data.items()}
     return Weights(**data)
+
+
+def _contains_any(text: str, terms: tuple[str, ...]) -> bool:
+    return any(term in text for term in terms)
+
+
+def _mentions_power(text: str) -> bool:
+    return re.search(r"\d+(?:\.\d+)?\s*mw", text) is not None
+
+
+def _mentions_emphasis(text: str) -> bool:
+    return any(phrase in text for phrases, _ in _EMPHASIS for phrase in phrases)
+
+
+def _has_siting_constraints(text: str) -> bool:
+    return (
+        _parse_country_filter(text) is not None
+        or _mentions_power(text)
+        or _contains_any(text, _WORKLOAD_TERMS)
+    )
+
+
+def _has_search_intent(text: str) -> bool:
+    return (
+        _has_siting_constraints(text)
+        or _mentions_emphasis(text)
+        or _contains_any(text, _SEARCH_INTENT_TERMS)
+    )
+
+
+def _is_greeting(text: str) -> bool:
+    greeting_pattern = r"\b(hello|hey|hi|good morning|good afternoon|good evening)\b"
+    return re.search(greeting_pattern, text) is not None
+
+
+def _is_selected_detail_question(payload: AgentChatRequest, text: str) -> bool:
+    if payload.selected_cell_id is None or _has_siting_constraints(text):
+        return False
+    return _contains_any(text, _DETAIL_INTENT_TERMS) or "tell me about" in text
+
+
+def _conversation_message(payload: AgentChatRequest, text: str) -> str:
+    if _is_greeting(text) or "who are you" in text or "your name" in text:
+        return FRED_INTRO
+    if _contains_any(text, _THANKS_TERMS):
+        return "You are welcome. I am here when you want to compare sites or adjust the load."
+    if _contains_any(text, _HELP_INTENT_TERMS):
+        return (
+            "Tell me the load in MW, the country or region, and what matters most: "
+            "cost, carbon, grid headroom, land, or connectivity."
+        )
+    return (
+        "I can help with live siting searches. Tell me the MW target, the country, "
+        "and the priority you want me to optimize."
+    )
+
+
+def _history_block(payload: AgentChatRequest) -> str:
+    turns = payload.history[-6:]
+    if not turns:
+        return "Recent conversation: none."
+    lines = [f"{turn.speaker}: {turn.body[:500]}" for turn in turns]
+    return "Recent conversation:\n" + "\n".join(lines)
 
 
 def _build_search_request(payload: AgentChatRequest) -> SearchRequest:
@@ -172,14 +275,16 @@ def _deterministic_message(
 ) -> str:
     if top is None:
         return (
-            f"No candidate cells clear the filters for {request.power_mw:.0f} MW"
+            f"Sure, I checked the live siting engine. No candidate cells clear "
+            f"the filters for {request.power_mw:.0f} MW"
             f"{_filter_phrase(request)}. Try a lower MW target or a wider country filter."
         )
     site = top.site
     count = len(search.results)
     plural = "s" if count != 1 else ""
     return (
-        f"Found {count} candidate{plural}{_filter_phrase(request)}. "
+        f"Sure, here is what I found. Found {count} candidate{plural}"
+        f"{_filter_phrase(request)}. "
         f"Top pick: {site.region_name} ({site.country_code}) at "
         f"{top.composite_score * 100:.0f}% score, {site.mean_price_eur_mwh:.0f} EUR/MWh, "
         f"{site.carbon_intensity_g_kwh:.0f} gCO2/kWh, {site.headroom_mw:.0f} MW headroom. "
@@ -221,9 +326,10 @@ async def _try_openai_chat(
     prompt = (
         "You are Fred, a data-center siting analyst embedded in a live dashboard. "
         "The engine already ran a real search for the user's question. In ONE short "
-        "paragraph (max 70 words), answer using ONLY the facts below; never invent "
-        "numbers. Name the top site, say briefly why it leads, and mention you are "
-        "flying the map to it.\n\n"
+        "paragraph (max 80 words), answer using ONLY the facts below; never invent "
+        "numbers. Begin naturally with 'Sure' when appropriate. Name the top site, "
+        "say briefly why it leads, and mention you are flying the map to it.\n\n"
+        f"{_history_block(payload)}\n\n"
         f"User question: {payload.message}\n\n{_facts_block(request, search, top)}"
     )
     try:
@@ -250,13 +356,56 @@ async def _try_openai_chat(
 
 
 async def chat(payload: AgentChatRequest) -> AgentChatResponse:
-    """Run an agent-driven search and return the reply plus a dashboard action."""
+    """Return Fred's reply plus any dashboard action the UI should apply."""
+
+    text = payload.message.lower()
+    if _is_selected_detail_question(payload, text):
+        try:
+            explanation = await explain_site(
+                ExplainRequest(
+                    cell_id=payload.selected_cell_id or "",
+                    power_mw=payload.power_mw,
+                    workload_type=payload.workload_type,
+                )
+            )
+        except KeyError:
+            explanation = None
+
+        if explanation is not None:
+            return AgentChatResponse(
+                source=explanation.source,
+                model=explanation.model,
+                message=explanation.message,
+                action=AgentAction(type="none"),
+                cache_key=build_cache_key(
+                    "agent.chat.detail",
+                    payload.message,
+                    payload.selected_cell_id,
+                    payload.power_mw,
+                    payload.workload_type,
+                    payload.history,
+                ),
+            )
+
+    if not _has_search_intent(text):
+        return AgentChatResponse(
+            source="template",
+            model=None,
+            message=_conversation_message(payload, text),
+            action=AgentAction(type="none"),
+            cache_key=build_cache_key(
+                "agent.chat.conversation",
+                payload.message,
+                payload.selected_cell_id,
+                payload.history,
+            ),
+        )
 
     request = _build_search_request(payload)
     search = search_site_cells(request)
     top = search.results[0] if search.results else None
     focus_cell_id = top.site.cell_id if top else None
-    cache_key = build_cache_key("agent.chat", request, payload.message)
+    cache_key = build_cache_key("agent.chat", request, payload.message, payload.history)
 
     message = _deterministic_message(request, search, top)
     source: ExplainSource = "template"

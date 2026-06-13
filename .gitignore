@@ -19,3 +19,6 @@ AGENTS.md
 CLAUDE.md
 frontend/test-results/
 frontend/playwright-report/
+.vercel/
+.env.local
+.env*

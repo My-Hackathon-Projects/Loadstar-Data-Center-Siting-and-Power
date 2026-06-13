@@ -9,13 +9,14 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Self
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # `Path(__file__).resolve().parents[3]` walks: core -> api -> backend -> repo root.
 ROOT_DIR = Path(__file__).resolve().parents[3]
+DEFAULT_DATABASE_URL = "postgresql://loadstar:loadstar@localhost:5432/loadstar"
 
 
 class Settings(BaseSettings):
@@ -35,9 +36,8 @@ class Settings(BaseSettings):
     # Postgres DSN. Set DATABASE_URL in `.env` to your local cluster, e.g.
     # `postgresql://loadstar:loadstar@localhost:5432/loadstar`. The default below
     # matches the docker-run snippet in README; override it as needed.
-    database_url: str = Field(
-        default="postgresql://loadstar:loadstar@localhost:5432/loadstar",
-    )
+    database_url: str = Field(default=DEFAULT_DATABASE_URL)
+    postgres_url: str | None = None
 
     # Optional Redis for the result-cache layer. When unset, the optimizer cache
     # falls back to the in-process LRU. See `backend/api/services/result_cache.py`.
@@ -70,6 +70,14 @@ class Settings(BaseSettings):
         extra="ignore",
         populate_by_name=True,
     )
+
+    @model_validator(mode="after")
+    def apply_platform_database_url_fallback(self) -> Self:
+        """Use Vercel/Supabase `POSTGRES_URL` when `DATABASE_URL` is not set."""
+
+        if self.database_url == DEFAULT_DATABASE_URL and self.postgres_url:
+            self.database_url = self.postgres_url
+        return self
 
 
 @lru_cache

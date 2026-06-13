@@ -270,9 +270,11 @@ export interface components {
         };
         /**
          * AgentChatRequest
-         * @description Payload for `POST /agent/chat`. Fred runs a real search from a free-text ask.
+         * @description Payload for `POST /agent/chat`. Fred responds to a free-text ask.
          */
         AgentChatRequest: {
+            /** History */
+            history?: components["schemas"]["AgentChatTurn"][];
             /** Message */
             message: string;
             /** Power Mw */
@@ -310,6 +312,19 @@ export interface components {
              * @enum {string}
              */
             source: "openai" | "template";
+        };
+        /**
+         * AgentChatTurn
+         * @description One recent chat turn sent back to Fred for conversational context.
+         */
+        AgentChatTurn: {
+            /** Body */
+            body: string;
+            /**
+             * Speaker
+             * @enum {string}
+             */
+            speaker: "assistant" | "user";
         };
         /** ApiErrorDetail */
         ApiErrorDetail: {

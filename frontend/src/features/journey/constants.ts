@@ -5,13 +5,6 @@
  * effect, the screenplay.
  */
 
-/** Per-phase durations (ms). Total animated time stays well under 20 seconds. */
-export const JOURNEY_TIMING = {
-  flightMs: 8500,
-  arrivalMs: 5500,
-  greetingMs: 2800,
-} as const;
-
 /** Centered narrative lines shown over the starfield, in order. */
 export const NARRATIVE_LINES = [
   "our entire history is two things",
@@ -20,8 +13,21 @@ export const NARRATIVE_LINES = [
   "we are building their synthesis",
 ] as const;
 
+export const NARRATIVE_LINE_MS = 2200;
+export const FINAL_NARRATIVE_HOLD_MS = 3600;
+export const NARRATIVE_FADE_S = 0.85;
+export const FINAL_NARRATIVE_FADE_S = 1.45;
+
+/** Per-phase durations (ms). The greeting is command-gated, not timer-gated. */
+export const JOURNEY_TIMING = {
+  flightMs:
+    NARRATIVE_LINE_MS * Math.max(NARRATIVE_LINES.length - 1, 0) +
+    FINAL_NARRATIVE_HOLD_MS,
+  arrivalMs: 5500,
+} as const;
+
 export const PRODUCT_NAME = "loadstar";
-export const FRED_GREETING = "Hey, I'm Fred. How can I help you?";
+export const FRED_GREETING = "Hello, my name is Fred. How can I help you?";
 
 /** Starfield: one BufferGeometry, additive blending, a single draw call. */
 export const STARFIELD = {

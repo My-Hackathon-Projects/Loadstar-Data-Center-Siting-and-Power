@@ -35,7 +35,7 @@ select {
   color: var(--text-dim);
 }
 
-/* Fred's voice indicator: thin amber bars pulsing. Decorative, not audio-driven. */
+/* Fred's voice indicator: thin amber bars pulsing. */
 @keyframes voicebar {
   0%,
   100% {
