@@ -25,6 +25,12 @@ dev = [
   "ruff",
 ]
 
+# Vercel deploys the FastAPI app as a single Python Serverless Function. This
+# points the Python runtime at the existing ASGI app (which also serves the
+# built SPA + static assets), so the whole product runs from one Vercel project.
+[tool.vercel]
+entrypoint = "backend.api.main:app"
+
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["backend/tests"]

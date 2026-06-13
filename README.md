@@ -250,13 +250,15 @@ python3 -m backend.pipeline.siting_model \
 
 The command writes `siting_model_subset.json` and `eval/siting_model_metrics.json` with the model checksum, AUC, precision@k, feature importance, labels, split details, and SHAP-style per-feature contributions. Rerun feature engineering after this command to embed `lightgbm_score`, `shap_values`, and the active ML method into `site_features_subset.json`.
 
-## Europe Dataset And Static Deployment
+## Europe Dataset
 
 The served site collection spans 30 European countries. It is generated from a
 curated metro list and public country-level reference values:
 
 ```bash
-node scripts/build_europe_dataset.mjs          # writes the dataset (both copies)
+make dataset
+# equivalently:
+node scripts/build_europe_dataset.mjs           # writes the dataset (both copies)
 python3 -m backend.pipeline.build_layer_assets  # regenerates static layers + assumptions.json
 ```
 
@@ -264,26 +266,49 @@ The generator writes the dataset to two committed locations from one source:
 
 - `backend/engine/data/europe_sites.json` — loaded by the FastAPI backend
   (`backend/engine/fixtures.py`) and validated against `SiteFeature`.
-- `frontend/public/data/sites.json` — read by the SPA when no API is reachable.
+- `frontend/public/data/sites.json` — read by the SPA as a resilience fallback
+  when the API cannot be reached.
 
-The deployed SPA on Vercel is a static site with no API origin. The frontend
-detects this with a one-time `/health` probe (`frontend/src/api/dataSource.ts`):
+## Deployment (Vercel, single project)
 
-- **Map, search, ranked list, detail, compare, assumptions** run fully in the
-  browser. Search/detail/compare use a TypeScript port of the backend scoring
-  engine (`frontend/src/lib/siteEngine.ts`), pinned to the Python output by a
-  golden test (`siteEngine.test.ts`) that re-derives the committed
-  `composite_score.json` layer.
-- **Supply-mix optimizer** is a scipy linear program with no browser port, so it
-  needs the live API. On the static deployment it shows a clear "live engine
-  required" state and the two optimizer stat cards fall back to a placeholder.
-- **Fred** falls back to a deterministic in-browser search (no LLM) and still
-  drives the map.
+The whole product runs from one Vercel project: the FastAPI app is deployed as
+a single Python Serverless Function (`tool.vercel.entrypoint = backend.api.main:app`
+in `pyproject.toml`) and that app also serves the built SPA and its static
+assets. There is no separate frontend host and no CORS to manage; everything is
+same-origin.
 
-Run the backend locally (`uvicorn main:app --reload`) to use the optimizer and
-the live LLM paths. The static layer and dataset assets are uploaded by the
-Vercel CLI deploy (they are intentionally git-ignored under
-`frontend/public/layers/`); redeploy with `vercel --prod` after regenerating.
+- `vercel.json` builds the SPA (`npm --prefix frontend run build`) so
+  `frontend/dist` is bundled into the function, then trims tests/data/ml from the
+  bundle with `functions.excludeFiles`.
+- `backend/api/main.py` mounts `/assets`, `/fonts`, `/geo`, `/data`, and the
+  prebuilt `/layers/{name}.json`, serves `index.html` for the SPA routes
+  (`/`, `/tech`, `/thanks`), and keeps real API 404s.
+- The frontend runs a one-time `/health` probe (`frontend/src/api/dataSource.ts`).
+  On Vercel the function answers `/health`, so search, the supply-mix optimizer,
+  and Fred (LLM + deterministic parser) all use the **live API**. If the API is
+  ever unreachable, the SPA degrades to an in-browser scoring engine
+  (`frontend/src/lib/siteEngine.ts`, pinned to the Python output by
+  `siteEngine.test.ts`) so search/detail/compare keep working.
+
+Deploy steps:
+
+```bash
+vercel --prod        # or push to the connected Git branch
+```
+
+Vercel environment variables (Project Settings → Environment Variables):
+
+- `OPENAI_API_KEY` and `LOADSTAR_LLM_ENABLED=true` — enables Fred's live LLM
+  (without them Fred uses the deterministic parser, still server-side).
+- `DATABASE_URL` / `POSTGRES_URL` — Postgres for `/health` status, the async
+  optimizer, and `/meta/source-artifacts`. The core path (search, sync
+  optimizer, Fred) works without it.
+- Do **not** set `WEB_DIST_DIR` (it defaults to `frontend/dist`, which is what
+  the build produces).
+
+If the project was previously deployed as a static site, set the Vercel
+Framework Preset to detect the Python app (the `fastapi` dependency plus
+`pyproject.toml`'s `[tool.vercel]` entrypoint), then redeploy.
 
 ## Validation
 

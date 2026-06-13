@@ -1,6 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm --prefix frontend ci && npm --prefix frontend run build && rm -rf frontend/node_modules",
-  "outputDirectory": "frontend/dist",
-  "rewrites": [{ "source": "/((?!assets/|data/|layers/|geo/|fonts/).*)", "destination": "/index.html" }]
+  "functions": {
+    "backend/api/main.py": {
+      "excludeFiles": "{backend/tests/**,eval/**,ml/**,data/**,frontend/node_modules/**,frontend/e2e/**,**/__pycache__/**,**/*.pyc,public/challenge/**}"
+    }
+  }
 }

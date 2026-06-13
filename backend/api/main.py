@@ -102,6 +102,9 @@ web_dist_dir = Path(settings.web_dist_dir)
 app.mount("/assets", StaticFiles(directory=web_dist_dir / "assets", check_dir=False), name="assets")
 app.mount("/fonts", StaticFiles(directory=web_dist_dir / "fonts", check_dir=False), name="fonts")
 app.mount("/geo", StaticFiles(directory=web_dist_dir / "geo", check_dir=False), name="geo")
+# Static dataset + assumptions the SPA falls back to when the API is unreachable.
+# Harmless when the API is up (the client prefers the live endpoints).
+app.mount("/data", StaticFiles(directory=web_dist_dir / "data", check_dir=False), name="data")
 
 _FRONTEND_ROUTES = frozenset({"app", "tech", "thanks"})
 
