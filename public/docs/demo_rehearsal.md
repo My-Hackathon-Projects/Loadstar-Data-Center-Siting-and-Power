@@ -49,8 +49,11 @@ file is the time-boxed walkthrough plus rehearsal log appendix.
 4. **Start backend + frontend in two shells:**
 
    ```bash
-   python3 -m uvicorn backend.api.main:app --reload     # shell A — :8000
-   npm --prefix frontend run dev                         # shell B — :5173
+   # shell A — repo root, API on :8000
+   uvicorn main:app --reload
+
+   # shell B — `frontend/`, Vite on :5173
+   cd frontend && npm run dev
    ```
 
 5. **Open the SPA and inspect health:**

@@ -53,16 +53,21 @@ npm --prefix frontend install
 
 ## Run The API And Demo UI
 
-Start the API:
+Start the API from the repo root:
 
 ```bash
-python3 -m uvicorn backend.api.main:app --reload
+uvicorn main:app --reload
 ```
 
-Start the frontend app in another shell:
+`main.py` at the repo root re-exports the FastAPI app from `backend/api/main.py`,
+so the canonical command works without a long module path. The real
+application code stays under `backend/api/`.
+
+Start the frontend app in another shell, from `frontend/`:
 
 ```bash
-npm --prefix frontend run dev
+cd frontend
+npm run dev
 ```
 
 Then open the Vite URL printed by npm, normally:
