@@ -1,6 +1,10 @@
+import os
 import sqlite3
 
-from backend.db.migrate import apply_schema
+import pytest
+
+from backend.db.connection import is_postgres
+from backend.db.migrate import apply_schema, apply_schema_url
 
 
 def test_initial_schema_creates_only_four_product_tables(tmp_path) -> None:
@@ -75,3 +79,36 @@ def test_initial_schema_accepts_fixture_shaped_site_features(tmp_path) -> None:
         count = connection.execute("SELECT COUNT(*) FROM site_features").fetchone()[0]
 
     assert count == 1
+
+
+_POSTGRES_TEST_DSN = os.environ.get("LOADSTAR_TEST_POSTGRES_URL")
+
+
+@pytest.mark.skipif(
+    not (_POSTGRES_TEST_DSN and is_postgres(_POSTGRES_TEST_DSN)),
+    reason="Set LOADSTAR_TEST_POSTGRES_URL to run the live Postgres schema test.",
+)
+def test_postgres_schema_applies_cleanly() -> None:
+    """Apply the Postgres schema against a real cluster.
+
+    Skipped unless `LOADSTAR_TEST_POSTGRES_URL` is set. CI sets it to point at
+    the workflow's Postgres service container; local devs can point it at any
+    Postgres they trust to drop and recreate four tables.
+    """
+
+    import psycopg
+
+    apply_schema_url(_POSTGRES_TEST_DSN)
+    with psycopg.connect(_POSTGRES_TEST_DSN) as connection, connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT table_name FROM information_schema.tables
+            WHERE table_schema = 'public'
+            ORDER BY table_name
+            """
+        )
+        rows = cursor.fetchall()
+    table_names = [row[0] for row in rows]
+    assert {"h3_cells", "hourly_energy", "optimization_runs", "site_features"} <= set(
+        table_names
+    )

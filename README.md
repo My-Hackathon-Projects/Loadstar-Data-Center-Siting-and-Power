@@ -38,7 +38,7 @@ The fixture data deliberately uses the same field names as the planned `site_fea
 
 ## Requirements
 
-- Python 3.12+
+- Python 3.13.2+
 - Node 24+ and npm
 - Optional: `uv` for Python dependency management
 
@@ -142,20 +142,35 @@ The checker does not print secrets. If a source is blocked, it records the fallb
 
 ## Apply The Minimal Schema
 
-For the first skeleton batch, the schema is SQLite-compatible so migrations can be tested locally without a database service:
+The schema applies to either SQLite (offline path) or Postgres (CI default and recommended local stack). The migration tool picks the dialect from `DATABASE_URL`.
+
+Postgres (recommended local dev):
 
 ```bash
-python3 -m backend.db.migrate --database data/loadstar.db
+docker run --rm -d --name loadstar-pg \
+  -p 5432:5432 \
+  -e POSTGRES_USER=loadstar \
+  -e POSTGRES_PASSWORD=loadstar \
+  -e POSTGRES_DB=loadstar \
+  postgres:16
+
+DATABASE_URL=postgresql://loadstar:loadstar@localhost:5432/loadstar make migrate
 ```
 
-This intentionally creates only:
+SQLite (offline / no Docker):
+
+```bash
+make migrate-sqlite
+```
+
+The schema intentionally creates only:
 
 - `h3_cells`
 - `site_features`
 - `hourly_energy`
 - `optimization_runs`
 
-Later ingestion issues should add their own tables when they populate them.
+Later ingestion issues should add their own tables when they populate them. The Postgres SQL lives in `backend/db/002_postgres.sql`; the SQLite SQL lives in `backend/db/001_initial.sql`. They are kept structurally identical apart from the `BIGSERIAL` vs `INTEGER PRIMARY KEY` choice on `hourly_energy.id` and the timestamp default expressions.
 
 ## Run The Subset Ingestion Pipeline
 

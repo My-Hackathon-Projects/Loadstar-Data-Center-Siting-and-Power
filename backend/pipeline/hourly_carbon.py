@@ -26,6 +26,7 @@ from backend.pipeline.artifacts import (
     upsert_source_artifacts,
     write_json_artifact,
 )
+from backend.pipeline.constants import DETERMINISTIC_SEED
 from backend.pipeline.subset_ingestion import (
     DEFAULT_COUNTRIES,
     FIXTURE_SITES,
@@ -35,7 +36,6 @@ from backend.pipeline.subset_ingestion import (
 ROOT_DIR = Path(__file__).resolve().parents[2]
 SCHEMA_VERSION = "loadstar.hourly_carbon.v1"
 ARTIFACT_VERSION = "hourly-carbon-v1"
-DETERMINISTIC_SEED = 20260612
 DEFAULT_YEAR = 2026
 
 PreferredMethod = Literal["entsoe_hourly_generation_mix"]

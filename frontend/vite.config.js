@@ -9,7 +9,7 @@ export default defineConfig({
             "/layers": "http://127.0.0.1:8000",
             "/sites": "http://127.0.0.1:8000",
             "/optimize": "http://127.0.0.1:8000",
-            "/assumptions": "http://127.0.0.1:8000"
-        }
-    }
+            "/assumptions": "http://127.0.0.1:8000",
+        },
+    },
 });

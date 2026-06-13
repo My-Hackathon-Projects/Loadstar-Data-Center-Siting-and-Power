@@ -1,7 +1,12 @@
 import { useEffect, useMemo } from "react";
 
-import { useSearchSites } from "../../lib/queries";
+import {
+  SEARCH_TOP_K_OPTIONS,
+  WORKLOAD_TYPE_OPTIONS,
+} from "../../config/defaults";
 import { useUiStore } from "../../hooks/useUiStore";
+import { useSearchSites } from "../../lib/queries";
+import type { SearchRequest } from "../../types/api";
 import { RankedSites } from "./RankedSites";
 
 export function SearchPanel() {
@@ -58,16 +63,15 @@ export function SearchPanel() {
             value={workloadType}
             onChange={(event) =>
               setSearchParams({
-                workloadType: event.target.value as
-                  | "training"
-                  | "inference"
-                  | "mixed",
+                workloadType: event.target.value as SearchRequest["workload_type"],
               })
             }
           >
-            <option value="training">Training</option>
-            <option value="inference">Inference</option>
-            <option value="mixed">Mixed</option>
+            {WORKLOAD_TYPE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
           </select>
         </label>
         <label className="grid gap-1 text-sm text-slate-600">
@@ -81,9 +85,11 @@ export function SearchPanel() {
               })
             }
           >
-            <option value={5}>5</option>
-            <option value={8}>8</option>
-            <option value={10}>10</option>
+            {SEARCH_TOP_K_OPTIONS.map((value) => (
+              <option key={value} value={value}>
+                {value}
+              </option>
+            ))}
           </select>
         </label>
       </div>

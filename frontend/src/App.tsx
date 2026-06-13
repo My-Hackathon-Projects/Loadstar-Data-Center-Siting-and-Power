@@ -1,10 +1,20 @@
+import { Suspense, lazy } from "react";
+
 import { AssumptionsPanel } from "./features/assumptions/AssumptionsPanel";
 import { ChatPanel } from "./features/chat/ChatPanel";
 import { ComparePanel } from "./features/compare/ComparePanel";
 import { SiteMap } from "./features/map/SiteMap";
-import { OptimizerPanel } from "./features/optimizer/OptimizerPanel";
 import { SearchPanel } from "./features/search/SearchPanel";
 import { SiteDetailPanel } from "./features/site-detail/SiteDetailPanel";
+
+// OptimizerPanel pulls in Recharts (~50 kB gzipped) and is only relevant after
+// a cell is selected. Lazy-loading keeps the initial bundle to the map +
+// search shell.
+const OptimizerPanel = lazy(() =>
+  import("./features/optimizer/OptimizerPanel").then((module) => ({
+    default: module.OptimizerPanel,
+  })),
+);
 
 export function App() {
   return (
@@ -30,7 +40,15 @@ export function App() {
 
         <aside className="grid content-start gap-3 xl:max-h-[calc(100vh-2rem)] xl:overflow-y-auto">
           <SiteDetailPanel />
-          <OptimizerPanel />
+          <Suspense
+            fallback={
+              <section className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500">
+                Loading optimizer...
+              </section>
+            }
+          >
+            <OptimizerPanel />
+          </Suspense>
           <AssumptionsPanel />
           <ChatPanel />
         </aside>

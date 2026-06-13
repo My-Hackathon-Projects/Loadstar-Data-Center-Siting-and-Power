@@ -5,12 +5,24 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from backend.pipeline.constants import DETERMINISTIC_SEED
+
 SCHEMA_VERSION = "loadstar.siting_model.v1"
 ARTIFACT_VERSION = "siting-model-v1"
 METRICS_VERSION = "siting-model-metrics-v1"
-DETERMINISTIC_SEED = 20260612
 NEGATIVES_PER_POSITIVE = 3
 OSM_POSITIVE_SIMILARITY_THRESHOLD = 0.75
+
+# Re-export so downstream `from backend.pipeline.siting_model_types import
+# DETERMINISTIC_SEED` keeps working without churn.
+__all__ = (
+    "ARTIFACT_VERSION",
+    "DETERMINISTIC_SEED",
+    "METRICS_VERSION",
+    "NEGATIVES_PER_POSITIVE",
+    "OSM_POSITIVE_SIMILARITY_THRESHOLD",
+    "SCHEMA_VERSION",
+)
 
 FEATURE_COLUMNS = (
     "mean_price_eur_mwh",
