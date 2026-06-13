@@ -3,10 +3,15 @@ import sqlite3
 from pathlib import Path
 
 from backend.engine.contracts import SiteFeature
+from backend.engine.fixtures import FEATURE_COLLECTION
 from backend.pipeline.alphaearth_land import run_alphaearth_land_model
 from backend.pipeline.feature_engineering import run_feature_engineering
 from backend.pipeline.hourly_carbon import run_hourly_carbon_ingestion
 from backend.pipeline.subset_ingestion import run_subset_ingestion
+
+# Cells the SE,DE,IE subset pipeline should produce, derived from the dataset so
+# the assertion survives the collection growing.
+_SUBSET_CELL_COUNT = sum(1 for s in FEATURE_COLLECTION if s.country_code in {"SE", "DE", "IE"})
 
 
 def test_feature_engineering_outputs_complete_subset_features(tmp_path: Path) -> None:
@@ -43,8 +48,7 @@ def test_feature_engineering_outputs_complete_subset_features(tmp_path: Path) ->
         record["cell_id"]: record
         for record in land_payload["records"]
     }
-    # FEATURE_COLLECTION holds 10 fixture sites across SE, DE, IE (4+3+3).
-    assert result.record_count == 10
+    assert result.record_count == _SUBSET_CELL_COUNT
     assert payload["normalization"]["method"] == "percentile_clipping"
     assert payload["congestion_blend_weights"] == {
         "ember_hub_country": 0.45,
@@ -101,4 +105,4 @@ def test_feature_engineering_outputs_complete_subset_features(tmp_path: Path) ->
             """
         ).fetchone()
 
-    assert row == (result.checksum_sha256, 10)
+    assert row == (result.checksum_sha256, _SUBSET_CELL_COUNT)

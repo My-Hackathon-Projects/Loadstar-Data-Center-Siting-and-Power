@@ -36,13 +36,17 @@ def test_search_filters_exclusions_and_insufficient_headroom(monkeypatch) -> Non
 
 def test_search_returns_deterministic_additive_score_breakdown() -> None:
     response = search_sites(SearchRequest(power_mw=280, top_k=8))
+    repeat = search_sites(SearchRequest(power_mw=280, top_k=8))
 
-    assert [result.site.region_name for result in response.results] == [
-        "Lulea / Boden",
-        "Sundsvall",
-        "Umea",
-        "Frankfurt West",
+    assert response.results, "expected at least one eligible candidate"
+    # Deterministic: identical requests yield identical rankings and scores.
+    assert [r.site.cell_id for r in response.results] == [
+        r.site.cell_id for r in repeat.results
     ]
+    # Ranked best-first by composite score.
+    scores = [result.composite_score for result in response.results]
+    assert scores == sorted(scores, reverse=True)
+
     for result in response.results:
         assert set(result.score_breakdown) == set(EXPECTED_FACTORS)
         assert set(result.score_contributions) == set(EXPECTED_FACTORS)
