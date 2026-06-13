@@ -1,7 +1,8 @@
-fastapi
 earthengine-api
+fastapi
 lightgbm
 numpy
+psycopg[binary]
 pydantic
 pydantic-settings
 pyright

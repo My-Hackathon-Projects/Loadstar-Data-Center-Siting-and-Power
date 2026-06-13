@@ -1,4 +1,4 @@
-.PHONY: setup dev frontend-dev web-dev frontend-types lint format typecheck test migrate pipeline-subset ingest-subset carbon-subset alphaearth-land-subset features-subset siting-model-subset
+.PHONY: setup dev frontend-dev web-dev frontend-types lint format typecheck test migrate migrate-sqlite pipeline-subset ingest-subset carbon-subset alphaearth-land-subset features-subset siting-model-subset
 
 setup:
 	python3 -m pip install -r requirements.txt
@@ -33,6 +33,9 @@ test:
 
 migrate:
 	python3 -m backend.db.migrate
+
+migrate-sqlite:
+	python3 -m backend.db.migrate --database data/loadstar.db
 
 pipeline-subset:
 	python3 -m backend.pipeline.access_check --write public/docs/access_decisions.md

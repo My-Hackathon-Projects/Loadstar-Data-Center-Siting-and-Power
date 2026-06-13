@@ -6,13 +6,26 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
+from backend.pipeline.constants import DETERMINISTIC_SEED
+
 SCHEMA_VERSION = "loadstar.alphaearth_land.v1"
 ARTIFACT_VERSION = "alphaearth-land-v1"
 METRICS_VERSION = "alphaearth-land-metrics-v1"
-DETERMINISTIC_SEED = 20260612
 ALPHAEARTH_COLLECTION_ID = "GOOGLE/SATELLITE_EMBEDDING/V1/ANNUAL"
 ALPHAEARTH_YEAR = 2024
 EMBEDDING_BANDS = tuple(f"A{index:02d}" for index in range(64))
+
+# Re-export so downstream `from backend.pipeline.alphaearth_land_types import
+# DETERMINISTIC_SEED` keeps working without churn.
+__all__ = (
+    "ALPHAEARTH_COLLECTION_ID",
+    "ALPHAEARTH_YEAR",
+    "ARTIFACT_VERSION",
+    "DETERMINISTIC_SEED",
+    "EMBEDDING_BANDS",
+    "METRICS_VERSION",
+    "SCHEMA_VERSION",
+)
 RANDOM_FOREST_TREES = 80
 TRAIN_FRACTION = 0.8
 H3_PROXY_BUFFER_METERS = 4500

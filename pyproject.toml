@@ -2,18 +2,25 @@
 name = "loadstar"
 version = "0.1.0"
 description = "Data-center siting and power planning skeleton for the Invertix challenge"
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 dependencies = [
+  "earthengine-api",
   "fastapi",
   "lightgbm",
   "numpy",
+  "psycopg[binary]",
   "pydantic",
   "pydantic-settings",
-  "pyright",
-  "ruff",
   "scipy",
   "typer",
   "uvicorn",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pyright",
+  "pytest",
+  "ruff",
 ]
 
 [tool.pytest.ini_options]
@@ -22,10 +29,10 @@ testpaths = ["backend/tests"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py312"
+target-version = "py313"
 
 [tool.pyright]
-pythonVersion = "3.12"
+pythonVersion = "3.13"
 typeCheckingMode = "strict"
 include = ["backend/api", "backend/engine", "backend/pipeline"]
 # Earth Engine and other external SDKs lack type stubs; the access-check CLI is a

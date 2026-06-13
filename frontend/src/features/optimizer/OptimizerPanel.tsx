@@ -1,3 +1,4 @@
+import { LOAD_PROFILE_OPTIONS } from "../../config/defaults";
 import { useUiStore } from "../../hooks/useUiStore";
 import {
   formatCarbon,
@@ -5,6 +6,7 @@ import {
   formatPercent,
 } from "../../lib/formatters";
 import { useOptimizeSupplyMix } from "../../lib/queries";
+import type { OptimizeRequest } from "../../types/api";
 import { dispatchChartRows } from "./optimizerCharts";
 import { portfolioRows, summaryMetric } from "./optimizerSummary";
 import { DispatchChart, ParetoChart } from "./SupplyMixCharts";
@@ -34,14 +36,15 @@ export function OptimizerPanel() {
             value={loadProfile}
             onChange={(event) =>
               setSearchParams({
-                loadProfile: event.target.value as
-                  | "flat_24_7"
-                  | "spiky_training",
+                loadProfile: event.target.value as OptimizeRequest["load_profile"],
               })
             }
           >
-            <option value="flat_24_7">Flat 24/7</option>
-            <option value="spiky_training">Spiky training</option>
+            {LOAD_PROFILE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
           </select>
         </label>
       </div>

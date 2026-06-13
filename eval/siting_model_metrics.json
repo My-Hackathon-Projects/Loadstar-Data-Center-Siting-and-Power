@@ -1,31 +1,31 @@
 {
-  "active_method": "lightgbm",
+  "active_method": "transparent_composite",
   "artifact_version": "siting-model-metrics-v1",
-  "auc": 1.0,
+  "auc": 0.8,
   "countries": [
     "SE",
     "DE",
     "IE"
   ],
   "deterministic_seed": 20260612,
-  "fallback": null,
+  "fallback": "LightGBM unavailable or failed; using transparent composite. Reason: No module named 'lightgbm'",
   "feature_importance": {
-    "buildable_fraction": 0.0,
-    "carbon_intensity_g_kwh": 0.0,
-    "congestion_index": 0.0,
-    "cooling_degree_proxy": 0.0,
-    "dc_similarity": 1.0,
-    "dist_fiber_km": 0.0,
-    "dist_hv_substation_km": 0.0,
-    "dist_ixp_km": 0.0,
-    "headroom_mw": 0.0,
-    "latency_proxy_ms": 0.0,
-    "mean_price_eur_mwh": 0.0,
-    "solar_cf": 0.0,
-    "water_dist_km": 0.0,
-    "wind_cf": 0.0
+    "buildable_fraction": 0.1,
+    "carbon_intensity_g_kwh": 0.081818,
+    "congestion_index": 0.072727,
+    "cooling_degree_proxy": 0.036364,
+    "dc_similarity": 0.154545,
+    "dist_fiber_km": 0.072727,
+    "dist_hv_substation_km": 0.072727,
+    "dist_ixp_km": 0.045455,
+    "headroom_mw": 0.1,
+    "latency_proxy_ms": 0.045455,
+    "mean_price_eur_mwh": 0.072727,
+    "solar_cf": 0.045455,
+    "water_dist_km": 0.036364,
+    "wind_cf": 0.063636
   },
-  "generated_at": "2026-06-12T23:57:52+00:00",
+  "generated_at": "2026-06-13T02:41:21+00:00",
   "label_summary": {
     "negative_count": 15,
     "negative_positive_ratio": 3.0,
@@ -37,14 +37,14 @@
       "osm_known_data_center_proxy"
     ]
   },
-  "model_artifact_checksum_sha256": "84330cb5b44d5b880d8c241f11d3bc63a9ecd35717ebae311b3430368f3a8e76",
+  "model_artifact_checksum_sha256": "446b8dbbe11aa5eea18f0b7adb0ac17ffd71ed157f063a9a5e600c16cac3de53",
   "precision_at_k": {
     "p@1": 1.0,
-    "p@3": 1.0,
-    "p@5": 1.0
+    "p@3": 0.6667,
+    "p@5": 0.8
   },
   "schema_version": "loadstar.siting_model.v1",
-  "source_status": "trained",
+  "source_status": "fallback",
   "split_strategy": {
     "heldout_count": 7,
     "holdout_country": "IE",
