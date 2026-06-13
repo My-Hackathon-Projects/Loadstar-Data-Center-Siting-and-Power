@@ -66,6 +66,8 @@ def test_feature_engineering_outputs_complete_subset_features(tmp_path: Path) ->
         "wind_cf",
         "water_dist_km",
         "cooling_degree_proxy",
+        "lightgbm_score",
+        "shap_values",
         "exclusion_flag",
         "missing_data_flags",
         "normalized_score_inputs",
@@ -76,7 +78,9 @@ def test_feature_engineering_outputs_complete_subset_features(tmp_path: Path) ->
         assert record["carbon_method_visible"] == "ember_monthly_repeat"
         assert record["missing_data_flags"]["entsoe_hourly_generation_mix"] is True
         assert record["missing_data_flags"]["alphaearth_land"] is True
+        assert record["missing_data_flags"]["siting_model"] is True
         assert record["source_methods"]["land"] == "fixture_land_proxy"
+        assert record["source_methods"]["ml"] == "fixture_static_score"
         assert record["buildable_fraction"] == land_by_cell[record["cell_id"]]["buildable_fraction"]
         assert record["dc_similarity"] == land_by_cell[record["cell_id"]]["dc_similarity"]
         assert all(0 <= value <= 1 for value in record["normalized_score_inputs"].values())

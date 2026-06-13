@@ -1,5 +1,7 @@
 fastapi
 earthengine-api
+lightgbm
+numpy
 pydantic
 pydantic-settings
 pyright

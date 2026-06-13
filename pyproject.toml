@@ -5,6 +5,8 @@ description = "Data-center siting and power planning skeleton for the Invertix c
 requires-python = ">=3.12"
 dependencies = [
   "fastapi",
+  "lightgbm",
+  "numpy",
   "pydantic",
   "pydantic-settings",
   "pyright",

@@ -2,7 +2,7 @@
 
 Loadstar is a decision-support product for the Invertix **Data-Center Siting & Power** challenge. It recommends European data-center locations for a requested MW size, explains trade-offs across energy and connectivity constraints, and returns a chart-ready supply-mix optimization response for the selected site.
 
-The current implementation covers issues `#1` through `#9`:
+The current implementation covers issues `#1` through `#10`:
 
 - `public/docs/plan.md` is the canonical build plan.
 - `public/docs/access_decisions.md` records task-zero external source checks and downstream fallback implications.
@@ -10,6 +10,7 @@ The current implementation covers issues `#1` through `#9`:
 - `ASSUMPTIONS.md` centralizes numeric assumptions and source notes.
 - `backend/db/001_initial.sql` defines the minimal four-table schema for the first demo slice.
 - A subset AlphaEarth land pipeline writes buildable-land and data-center-similarity features with deterministic fallback metrics.
+- A siting propensity pipeline trains LightGBM viability scores and records SHAP-style explanations, with a deterministic composite fallback when LightGBM is unavailable.
 
 ## Repository Layout
 
@@ -179,6 +180,19 @@ python3 -m backend.pipeline.feature_engineering \
 
 The feature artifact writes `site_features_subset.json` with complete searchable-cell fields, normalized score inputs, map overlay values, congestion blend components, AlphaEarth land values or fixture fallbacks, and explicit missing-data flags.
 
+Issue 10 trains the siting propensity model from the feature artifact. Positives come from curated known data-center cells and high data-center-similarity cells; negatives are deterministically sampled from non-excluded cells at three per positive. The split is country-based to avoid geographic leakage.
+
+```bash
+python3 -m backend.pipeline.siting_model \
+  --countries SE,DE,IE \
+  --input-dir data/processed/subset \
+  --output-dir data/processed/subset \
+  --eval-dir eval \
+  --metadata-database data/processed/source_artifacts.db
+```
+
+The command writes `siting_model_subset.json` and `eval/siting_model_metrics.json` with the model checksum, AUC, precision@k, feature importance, labels, split details, and SHAP-style per-feature contributions. Rerun feature engineering after this command to embed `lightgbm_score`, `shap_values`, and the active ML method into `site_features_subset.json`.
+
 ## Validation
 
 ```bash
@@ -205,12 +219,12 @@ The current tests cover:
 - hourly carbon preferred/fallback methods
 - AlphaEarth land fallback artifacts, held-out metrics, and metadata checksums
 - feature engineering normalization and missing-data flags
+- siting propensity artifact, eval metrics, metadata checksums, and feature rehydration
 
 ## Non-Goals In This Batch
 
 - No full-Europe ingestion yet.
 - No PostGIS service requirement yet.
 - No full-Europe AlphaEarth export yet; run the subset path first.
-- No real LightGBM model training yet.
 - No real LP solver yet; the optimizer response is a plausible fixture contract.
 - No Git commits or pushes from the agent.

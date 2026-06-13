@@ -144,6 +144,9 @@ class FeatureContext:
     land_by_cell: dict[str, dict[str, float]]
     land_method: str
     land_source_status: str
+    model_by_cell: dict[str, SitingModelFeature]
+    model_method: str
+    model_source_status: str
     ember_country_congestion: dict[str, float]
     ember_hub_congestion: dict[str, float]
     line_loading_by_cell: dict[str, float]
@@ -151,13 +154,21 @@ class FeatureContext:
     summary: dict[str, object]
 
 
+@dataclass(frozen=True)
+class SitingModelFeature:
+    viability_score: float
+    shap_values: dict[str, float]
+
+
 def _load_context(input_dir: Path) -> FeatureContext:
     hourly_payload = _load_payload(input_dir / "hourly_carbon_subset.json")
     land_payload = _load_payload(input_dir / "alphaearth_land_subset.json")
+    model_payload = _load_payload(input_dir / "siting_model_subset.json")
     opf_payload = _load_payload(input_dir / "pypsa_clustered_opf.json")
     congestion_payload = _load_payload(input_dir / "ember_grids_congestion_layers.json")
     hourly_records = _records(hourly_payload)
     land_records = _records(land_payload)
+    model_records = _records(model_payload)
     opf_records = _records(opf_payload)
     congestion_records = _records(congestion_payload)
     active_method = _optional_string(hourly_payload.get("active_method"), "missing")
@@ -166,12 +177,15 @@ def _load_context(input_dir: Path) -> FeatureContext:
         "fixture_schema_compatible_proxy",
     )
     land_status = _optional_string(land_payload.get("source_status"), "missing")
+    model_method = _optional_string(model_payload.get("active_method"), "fixture_static_score")
+    model_status = _optional_string(model_payload.get("source_status"), "missing")
 
     line_loading_by_cell, nodal_price_spread_by_cell = _opf_components(opf_records)
     country_congestion, hub_congestion = _congestion_components(congestion_records)
     summary: dict[str, object] = {
         "hourly_carbon_artifact": _payload_status(hourly_payload),
         "alphaearth_land_artifact": _payload_status(land_payload),
+        "siting_model_artifact": _payload_status(model_payload),
         "opf_artifact": _payload_status(opf_payload),
         "congestion_artifact": _payload_status(congestion_payload),
     }
@@ -181,6 +195,9 @@ def _load_context(input_dir: Path) -> FeatureContext:
         land_by_cell=_land_features(land_records),
         land_method=land_method,
         land_source_status=land_status,
+        model_by_cell=_siting_model_features(model_records),
+        model_method=model_method,
+        model_source_status=model_status,
         ember_country_congestion=country_congestion,
         ember_hub_congestion=hub_congestion,
         line_loading_by_cell=line_loading_by_cell,
@@ -192,6 +209,7 @@ def _load_context(input_dir: Path) -> FeatureContext:
 def _raw_feature_record(site: SiteFeature, context: FeatureContext) -> dict[str, object]:
     carbon = context.hourly_carbon_by_country.get(site.country_code, site.carbon_intensity_g_kwh)
     land = context.land_by_cell.get(site.cell_id, {})
+    model = context.model_by_cell.get(site.cell_id)
     ember_component = _ember_congestion(site, context)
     line_component = context.line_loading_by_cell.get(site.cell_id, site.congestion_index)
     nodal_component = context.nodal_price_spread_by_cell.get(site.cell_id, site.congestion_index)
@@ -222,7 +240,8 @@ def _raw_feature_record(site: SiteFeature, context: FeatureContext) -> dict[str,
         "cooling_degree_proxy": site.cooling_degree_proxy,
         "buildable_fraction": land.get("buildable_fraction", site.buildable_fraction),
         "dc_similarity": land.get("dc_similarity", site.dc_similarity),
-        "lightgbm_score": site.lightgbm_score,
+        "lightgbm_score": model.viability_score if model else site.lightgbm_score,
+        "shap_values": model.shap_values if model else site.shap_values,
         "exclusion_flag": site.exclusion_flag,
         "congestion_components": {
             "ember_hub_country": round(ember_component, 4),
@@ -237,12 +256,14 @@ def _raw_feature_record(site: SiteFeature, context: FeatureContext) -> dict[str,
             "official_ember_grids": True,
             "full_pypsa_opf": True,
             "alphaearth_land": context.land_source_status != "earth_engine",
+            "siting_model": context.model_source_status != "trained",
         },
         "source_methods": {
             "carbon": context.hourly_carbon_method,
             "congestion": "ember_hub_country_plus_precomputed_opf_proxy",
             "fiber": "ixp_proxy_fallback",
             "land": context.land_method,
+            "ml": context.model_method,
         },
     }
 
@@ -385,6 +406,33 @@ def _land_features(land_records: Sequence[dict[str, object]]) -> dict[str, dict[
                 "buildable_fraction": _clamp01(buildable),
                 "dc_similarity": _clamp01(similarity),
             }
+    return values
+
+
+def _siting_model_features(
+    model_records: Sequence[dict[str, object]],
+) -> dict[str, SitingModelFeature]:
+    values: dict[str, SitingModelFeature] = {}
+    for record in model_records:
+        cell_id = record.get("cell_id")
+        score = _optional_float(record.get("viability_score"))
+        shap_values = _shap_values(record.get("shap_values"))
+        if isinstance(cell_id, str) and score is not None and shap_values:
+            values[cell_id] = SitingModelFeature(
+                viability_score=round(_clamp01(score), 4),
+                shap_values=shap_values,
+            )
+    return values
+
+
+def _shap_values(raw: object) -> dict[str, float]:
+    if not isinstance(raw, dict):
+        return {}
+    values: dict[str, float] = {}
+    for key, value in cast(dict[object, object], raw).items():
+        parsed = _optional_float(value)
+        if isinstance(key, str) and parsed is not None:
+            values[key] = round(parsed, 6)
     return values
 
 

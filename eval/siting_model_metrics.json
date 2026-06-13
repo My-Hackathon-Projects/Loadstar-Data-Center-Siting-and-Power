@@ -1,0 +1,54 @@
+{
+  "active_method": "lightgbm",
+  "artifact_version": "siting-model-metrics-v1",
+  "auc": 1.0,
+  "countries": [
+    "SE",
+    "DE",
+    "IE"
+  ],
+  "deterministic_seed": 20260612,
+  "fallback": null,
+  "feature_importance": {
+    "buildable_fraction": 0.0,
+    "carbon_intensity_g_kwh": 0.0,
+    "congestion_index": 0.0,
+    "cooling_degree_proxy": 0.0,
+    "dc_similarity": 1.0,
+    "dist_fiber_km": 0.0,
+    "dist_hv_substation_km": 0.0,
+    "dist_ixp_km": 0.0,
+    "headroom_mw": 0.0,
+    "latency_proxy_ms": 0.0,
+    "mean_price_eur_mwh": 0.0,
+    "solar_cf": 0.0,
+    "water_dist_km": 0.0,
+    "wind_cf": 0.0
+  },
+  "generated_at": "2026-06-12T23:57:52+00:00",
+  "label_summary": {
+    "negative_count": 15,
+    "negative_positive_ratio": 3.0,
+    "negative_source": "deterministic_non_excluded_cell_sampling",
+    "osm_positive_cell_count": 5,
+    "positive_count": 5,
+    "positive_sources": [
+      "curated_known_data_center_cell",
+      "osm_known_data_center_proxy"
+    ]
+  },
+  "model_artifact_checksum_sha256": "84330cb5b44d5b880d8c241f11d3bc63a9ecd35717ebae311b3430368f3a8e76",
+  "precision_at_k": {
+    "p@1": 1.0,
+    "p@3": 1.0,
+    "p@5": 1.0
+  },
+  "schema_version": "loadstar.siting_model.v1",
+  "source_status": "trained",
+  "split_strategy": {
+    "heldout_count": 7,
+    "holdout_country": "IE",
+    "method": "holdout_country",
+    "train_count": 13
+  }
+}
