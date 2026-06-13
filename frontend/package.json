@@ -15,9 +15,13 @@
     "generate:types": "npm run generate:openapi && openapi-typescript src/types/openapi.json -o src/types/openapi.ts"
   },
   "dependencies": {
+    "@deck.gl/geo-layers": "^9.3.4",
+    "@deck.gl/react": "^9.3.4",
     "@tanstack/react-query": "^5.0.0",
+    "maplibre-gl": "^5.24.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-map-gl": "^8.1.1",
     "recharts": "^2.15.0",
     "zustand": "^5.0.0"
   },

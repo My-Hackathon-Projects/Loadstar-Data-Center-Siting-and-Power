@@ -1,6 +1,10 @@
 import { API_BASE_URL } from "../config/env";
 import type {
   ApiErrorResponse,
+  AssumptionsResponse,
+  CompareRequest,
+  CompareResponse,
+  LayerResponse,
   OptimizeRequest,
   SearchRequest,
   SearchResponse,
@@ -49,6 +53,21 @@ export function getSite(cellId: string): Promise<SiteDetailResponse> {
   return requestJson<SiteDetailResponse>(`/sites/${cellId}`);
 }
 
+/** GET `/layers/{layerName}` and return a GeoJSON map layer. */
+export function getLayer(layerName: string): Promise<LayerResponse> {
+  return requestJson<LayerResponse>(`/layers/${layerName}`);
+}
+
+/** POST `/sites/compare` and return site feature rows in request order. */
+export function compareSites(
+  payload: CompareRequest,
+): Promise<CompareResponse> {
+  return requestJson<CompareResponse>("/sites/compare", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
 /** POST `/optimize/supply-mix` and return the chart-ready supply-mix response. */
 export function optimizeSupplyMix(
   payload: OptimizeRequest,
@@ -57,4 +76,9 @@ export function optimizeSupplyMix(
     method: "POST",
     body: JSON.stringify(payload),
   });
+}
+
+/** GET `/assumptions` and return public model assumptions. */
+export function getAssumptions(): Promise<AssumptionsResponse> {
+  return requestJson<AssumptionsResponse>("/assumptions");
 }

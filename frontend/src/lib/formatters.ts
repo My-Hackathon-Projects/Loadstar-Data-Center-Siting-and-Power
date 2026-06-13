@@ -1,9 +1,9 @@
 const numberFormatter = new Intl.NumberFormat("en-US", {
-  maximumFractionDigits: 0
+  maximumFractionDigits: 0,
 });
 
 const oneDecimalFormatter = new Intl.NumberFormat("en-US", {
-  maximumFractionDigits: 1
+  maximumFractionDigits: 1,
 });
 
 /** Format a load size in megawatts (no decimals). Example: `formatMw(280) === "280 MW"`. */

@@ -1,0 +1,8 @@
+frontend/dist/
+frontend/coverage/
+frontend/node_modules/
+frontend/src/types/openapi.json
+frontend/src/types/openapi.ts
+frontend/*.tsbuildinfo
+frontend/vite.config.d.ts
+frontend/vite.config.js

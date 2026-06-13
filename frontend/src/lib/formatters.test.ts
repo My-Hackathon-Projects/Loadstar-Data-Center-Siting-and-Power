@@ -5,7 +5,7 @@ import {
   formatDistanceKm,
   formatEurPerMwh,
   formatMw,
-  formatPercent
+  formatPercent,
 } from "./formatters";
 
 describe("formatters", () => {

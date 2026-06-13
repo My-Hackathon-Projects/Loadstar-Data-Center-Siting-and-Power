@@ -1,0 +1,8 @@
+dist/
+coverage/
+node_modules/
+src/types/openapi.json
+src/types/openapi.ts
+*.tsbuildinfo
+vite.config.d.ts
+vite.config.js

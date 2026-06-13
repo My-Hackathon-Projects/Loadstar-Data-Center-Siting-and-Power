@@ -12,22 +12,22 @@ export default [
       globals: {
         document: "readonly",
         fetch: "readonly",
-        Intl: "readonly"
+        Intl: "readonly",
       },
       parser: tsParser,
       parserOptions: {
-        project: "./tsconfig.json"
-      }
+        project: "./tsconfig.json",
+      },
     },
     plugins: {
       "@typescript-eslint": tseslint,
-      "react-hooks": reactHooks
+      "react-hooks": reactHooks,
     },
     rules: {
       ...tseslint.configs.strict.rules,
       ...reactHooks.configs.recommended.rules,
-      "@typescript-eslint/no-explicit-any": "error"
-    }
+      "@typescript-eslint/no-explicit-any": "error",
+    },
   },
-  prettier
+  prettier,
 ];

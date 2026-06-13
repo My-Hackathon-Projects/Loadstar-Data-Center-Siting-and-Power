@@ -2,7 +2,7 @@
 
 Loadstar is a decision-support product for the Invertix **Data-Center Siting & Power** challenge. It recommends European data-center locations for a requested MW size, explains trade-offs across energy and connectivity constraints, and returns a chart-ready supply-mix optimization response for the selected site.
 
-The current implementation covers issues `#1` through `#13`:
+The current implementation covers issues `#1` through `#14`:
 
 - `public/docs/plan.md` is the canonical build plan.
 - `public/docs/access_decisions.md` records task-zero external source checks and downstream fallback implications.
@@ -14,6 +14,7 @@ The current implementation covers issues `#1` through `#13`:
 - Deterministic site scoring ranks eligible cells with additive score breakdowns for API, UI, and agent explanations.
 - A deterministic single-site LP optimizer returns a cost/carbon Pareto frontier, portfolio, dispatch summary, annual matched clean share, and hourly 24/7 CFE share.
 - Stable FastAPI endpoints expose health, assumptions, layers, search, detail, comparison, and supply optimization with typed responses, cache keys, and structured errors.
+- The React demo is map-first: MapLibre GL provides the canvas, deck.gl renders H3 overlays, TanStack Query routes API calls, and Recharts renders Pareto plus dispatch charts.
 
 ## Repository Layout
 
@@ -27,10 +28,11 @@ The current implementation covers issues `#1` through `#13`:
 
 The fixture skeleton supports the required first integration path:
 
-1. Enter a 280 MW AI training campus.
-2. Search fixture sites in Sweden, Germany, and Ireland.
-3. Open a site detail view.
+1. Enter a 280 MW AI training campus and choose the workload.
+2. Review H3 map overlays for score, price, carbon, congestion, headroom, or buildable land.
+3. Select ranked cells, inspect the detail drawer, and pin two to five cells for comparison.
 4. Run the site-level Pareto optimizer for the selected cell.
+5. Review Pareto, hourly dispatch, portfolio shares, assumptions, and deterministic chat explanations.
 
 The fixture data deliberately uses the same field names as the planned `site_features` contract so later ingestion issues can swap real data behind the same interface.
 
@@ -106,6 +108,8 @@ curl -sS http://127.0.0.1:8000/optimize/supply-mix \
 ```
 
 The optimizer solves a 24-hour single-site LP with grid import, wind and solar PPAs, on-site solar, battery charge/discharge, curtailment, optional backup, hourly energy balance, grid headroom, storage state of charge, and optional carbon caps. The response includes `recommended_portfolio`, `dispatch_summary`, 24 hourly `dispatch_preview` rows, `annual_matched_clean_share`, `hourly_24_7_cfe_share`, and an 8-12 point `pareto_frontier`.
+
+The frontend uses `frontend/src/lib/queries.ts` for all server calls. Components should not call `fetch` directly. H3 map-layer transforms live in `frontend/src/features/map/mapLayers.ts`, and optimizer chart transforms live in `frontend/src/features/optimizer/optimizerCharts.ts` so they can be unit tested without a browser.
 
 ## Frontend API Types
 
@@ -247,6 +251,7 @@ The current tests cover:
 - detail and optimizer contracts
 - OpenAPI schemas, deterministic response cache keys, and structured API errors
 - optimizer energy balance, storage bounds, carbon caps, and spiky training load shape
+- frontend formatting, score explanation, H3 map-layer transforms, and optimizer dispatch chart transforms
 - access decision fallback behavior
 - applying the four-table schema from zero
 - subset ingestion artifacts and source metadata
