@@ -68,6 +68,8 @@ describe("map layer helpers", () => {
       "congestion_index",
       "headroom_mw",
       "buildable_fraction",
+      "water_dist_km",
+      "cooling_degree_proxy",
     ]);
   });
 

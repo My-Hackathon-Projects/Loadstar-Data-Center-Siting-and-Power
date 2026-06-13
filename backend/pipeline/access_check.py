@@ -162,23 +162,57 @@ def check_itu_bbmaps() -> SourceDecision:
 
 
 def check_ember() -> SourceDecision:
+    """Decide which Ember source path is live.
+
+    Priority:
+    1. Local Ember CSV ledger at ``ember/dataset/ember_prices.db`` (the
+       output of ``python3 ember/ingest.py`` — real hourly day-ahead prices,
+       country-level). This is the preferred source today.
+    2. Configured ``EMBER_HOURLY_PRICE_URL`` endpoint — kept for the future
+       when Ember exposes hourly prices through a stable API.
+    3. Blocked — neither is available; downstream pipelines fall back to
+       the curated fixture broadcast.
+    """
+
     settings = get_settings()
     hourly_url = settings.ember_hourly_price_url
     api_key = settings.ember_api_key
+    local_db = (
+        Path(__file__).resolve().parents[2] / "ember" / "dataset" / "ember_prices.db"
+    )
+    if local_db.exists():
+        return SourceDecision(
+            source="Ember hourly electricity prices",
+            status="ok",
+            check=f"Local Ember CSV ledger found at {local_db}.",
+            evidence=(
+                f"SQLite file present ({local_db.stat().st_size // 1024} KiB); "
+                "ingested by `python3 ember/ingest.py` from the public CSV download."
+            ),
+            downstream_implication=(
+                "`backend.pipeline.hourly_price` reads this DB and overlays real "
+                "Ember mean prices onto matching cells in feature engineering."
+            ),
+        )
+
     if not hourly_url:
         status, _ = _curl_head(EMBER_ROOT_URL)
         return SourceDecision(
             source="Ember hourly electricity prices",
             status="blocked",
-            check="No EMBER_HOURLY_PRICE_URL was configured for an actual hourly price pull.",
+            check=(
+                "Neither the local Ember CSV ledger nor a configured "
+                "EMBER_HOURLY_PRICE_URL endpoint is available."
+            ),
             evidence=(
-                f"Root endpoint probe returned HTTP {status}; hourly data endpoint not verified."
+                f"Root endpoint probe returned HTTP {status}; ember/dataset/ember_prices.db "
+                "not present."
             ),
             downstream_implication=(
-                "Issue 6 must not assume Ember hourly price access. Use a verified "
-                "endpoint or fallback before replacing fixture prices."
+                "`backend.pipeline.hourly_price` falls back to the curated fixture "
+                "broadcast; per-cell mean_price_eur_mwh stays at the reference value."
             ),
-            fallback="Use checked fixture prices or ENTSO-E-backed prices with provisional labels.",
+            fallback="Run `python3 ember/ingest.py` to build the local CSV ledger.",
         )
 
     headers = {"Accept": "application/json"}
@@ -201,9 +235,10 @@ def check_ember() -> SourceDecision:
         check="Attempted configured hourly price URL.",
         evidence=f"HTTP {status}; payload={payload}",
         downstream_implication=(
-            "Issue 6 must use fallback pricing until the Ember endpoint/key is corrected."
+            "`backend.pipeline.hourly_price` falls back to the curated fixture "
+            "broadcast until the endpoint or key is corrected."
         ),
-        fallback="Use ENTSO-E-backed or fixture hourly prices with provisional labels.",
+        fallback="Run `python3 ember/ingest.py` for the local CSV ledger path.",
     )
 
 

@@ -30,3 +30,18 @@ export function formatPercent(value: number): string {
 export function formatDistanceKm(value: number): string {
   return `${oneDecimalFormatter.format(value)} km`;
 }
+
+/** Format a normalized cooling-load index (0..1) with two decimals. */
+export function formatCoolingIndex(value: number): string {
+  return value.toFixed(2);
+}
+
+/** Format a substation capacity in MVA (no decimals). */
+export function formatMva(value: number): string {
+  return `${numberFormatter.format(value)} MVA`;
+}
+
+/** Format a substation voltage as e.g. `"380 kV"`. */
+export function formatKv(value: number): string {
+  return `${numberFormatter.format(value)} kV`;
+}

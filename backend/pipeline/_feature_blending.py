@@ -62,6 +62,16 @@ def raw_feature_record(site: SiteFeature, context: FeatureContext) -> dict[str, 
     carbon = context.hourly_carbon_by_country.get(site.country_code, site.carbon_intensity_g_kwh)
     land = context.land_by_cell.get(site.cell_id, {})
     model = context.model_by_cell.get(site.cell_id)
+    price_profile = context.price_by_country.get(site.country_code)
+    mean_price = (
+        price_profile.mean_price_eur_mwh if price_profile is not None else site.mean_price_eur_mwh
+    )
+    price_volatility = (
+        price_profile.price_volatility if price_profile is not None else site.price_volatility
+    )
+    price_method = (
+        price_profile.source_method if price_profile is not None else "fixture_static_price"
+    )
     ember_component = _ember_congestion(site, context)
     line_component = context.line_loading_by_cell.get(site.cell_id, site.congestion_index)
     nodal_component = context.nodal_price_spread_by_cell.get(site.cell_id, site.congestion_index)
@@ -77,8 +87,8 @@ def raw_feature_record(site: SiteFeature, context: FeatureContext) -> dict[str, 
         "latitude": site.latitude,
         "longitude": site.longitude,
         "resolution": site.resolution,
-        "mean_price_eur_mwh": site.mean_price_eur_mwh,
-        "price_volatility": site.price_volatility,
+        "mean_price_eur_mwh": round(mean_price, 2),
+        "price_volatility": round(price_volatility, 2),
         "carbon_intensity_g_kwh": round(carbon, 3),
         "congestion_index": round(blended_congestion, 4),
         "headroom_mw": site.headroom_mw,
@@ -109,6 +119,7 @@ def raw_feature_record(site: SiteFeature, context: FeatureContext) -> dict[str, 
             "full_pypsa_opf": True,
             "alphaearth_land": context.land_source_status != "earth_engine",
             "siting_model": context.model_source_status != "trained",
+            "ember_hourly_price": context.price_method != "ember_csv_local_db",
         },
         "source_methods": {
             "carbon": context.hourly_carbon_method,
@@ -116,6 +127,7 @@ def raw_feature_record(site: SiteFeature, context: FeatureContext) -> dict[str, 
             "fiber": "ixp_proxy_fallback",
             "land": context.land_method,
             "ml": context.model_method,
+            "price": price_method,
         },
     }
 

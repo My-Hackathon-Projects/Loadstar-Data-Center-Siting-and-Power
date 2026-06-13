@@ -561,6 +561,12 @@ export interface components {
             water_dist_km: number;
             /** Wind Cf */
             wind_cf: number;
+            /** Nearest Substation Kv */
+            nearest_substation_kv?: number | null;
+            /** Nearest Substation Distance Km */
+            nearest_substation_distance_km?: number | null;
+            /** Nearest Substation Capacity Mva */
+            nearest_substation_capacity_mva?: number | null;
         };
         /** LayerResponse */
         LayerResponse: {
@@ -825,6 +831,12 @@ export interface components {
             water_dist_km: number;
             /** Wind Cf */
             wind_cf: number;
+            /** Nearest Substation Kv */
+            nearest_substation_kv?: number | null;
+            /** Nearest Substation Distance Km */
+            nearest_substation_distance_km?: number | null;
+            /** Nearest Substation Capacity Mva */
+            nearest_substation_capacity_mva?: number | null;
         };
         /**
          * SourceArtifact

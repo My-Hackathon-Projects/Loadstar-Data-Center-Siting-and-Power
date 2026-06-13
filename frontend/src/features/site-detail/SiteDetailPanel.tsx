@@ -2,8 +2,11 @@ import { Metric } from "../../components/Metric";
 import { useUiStore } from "../../hooks/useUiStore";
 import {
   formatCarbon,
+  formatCoolingIndex,
   formatDistanceKm,
   formatEurPerMwh,
+  formatKv,
+  formatMva,
   formatMw,
   formatPercent,
 } from "../../lib/formatters";
@@ -16,6 +19,10 @@ export function SiteDetailPanel() {
   const shapEntries = Object.entries(site?.shap_values ?? {})
     .sort((left, right) => Math.abs(right[1]) - Math.abs(left[1]))
     .slice(0, 4);
+  const nearestKv = site?.nearest_substation_kv ?? null;
+  const nearestDistance = site?.nearest_substation_distance_km ?? null;
+  const nearestCapacity = site?.nearest_substation_capacity_mva ?? null;
+  const hasGridContext = nearestKv !== null && nearestDistance !== null;
 
   return (
     <section>
@@ -75,6 +82,40 @@ export function SiteDetailPanel() {
               value={formatDistanceKm(site.dist_hv_substation_km)}
             />
           </div>
+          <div>
+            <p className="eyebrow">curated model inputs</p>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <Metric
+                label="water dist"
+                value={formatDistanceKm(site.water_dist_km)}
+              />
+              <Metric
+                label="cooling load"
+                value={formatCoolingIndex(site.cooling_degree_proxy)}
+              />
+            </div>
+          </div>
+          {hasGridContext ? (
+            <div>
+              <p className="eyebrow">nearest substation</p>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <Metric
+                  label="voltage"
+                  value={formatKv(nearestKv as number)}
+                />
+                <Metric
+                  label="distance"
+                  value={formatDistanceKm(nearestDistance as number)}
+                />
+                {nearestCapacity !== null ? (
+                  <Metric
+                    label="connected capacity"
+                    value={formatMva(nearestCapacity)}
+                  />
+                ) : null}
+              </div>
+            </div>
+          ) : null}
           <div>
             <p className="eyebrow">viability drivers</p>
             <div className="mt-2 grid gap-2">

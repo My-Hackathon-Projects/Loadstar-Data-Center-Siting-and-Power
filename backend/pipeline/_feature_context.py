@@ -25,6 +25,16 @@ class SitingModelFeature:
 
 
 @dataclass(frozen=True)
+class CountryPriceProfile:
+    """One country's mean price + volatility from the Ember overlay (or fixture)."""
+
+    mean_price_eur_mwh: float
+    price_volatility: float
+    sample_year: int | None
+    source_method: str
+
+
+@dataclass(frozen=True)
 class FeatureContext:
     hourly_carbon_by_country: dict[str, float]
     hourly_carbon_method: str
@@ -38,22 +48,27 @@ class FeatureContext:
     ember_hub_congestion: dict[str, float]
     line_loading_by_cell: dict[str, float]
     nodal_price_spread_by_cell: dict[str, float]
+    price_by_country: dict[str, CountryPriceProfile]
+    price_method: str
+    price_source_status: str
     summary: dict[str, object]
 
 
 def load_context(input_dir: Path) -> FeatureContext:
-    """Read the five upstream artifacts and assemble the per-cell context."""
+    """Read the upstream artifacts and assemble the per-cell context."""
 
     hourly_payload = _load_payload(input_dir / "hourly_carbon_subset.json")
     land_payload = _load_payload(input_dir / "alphaearth_land_subset.json")
     model_payload = _load_payload(input_dir / "siting_model_subset.json")
     opf_payload = _load_payload(input_dir / "pypsa_clustered_opf.json")
     congestion_payload = _load_payload(input_dir / "ember_grids_congestion_layers.json")
+    price_payload = _load_payload(input_dir / "hourly_price_subset.json")
     hourly_records = _records(hourly_payload)
     land_records = _records(land_payload)
     model_records = _records(model_payload)
     opf_records = _records(opf_payload)
     congestion_records = _records(congestion_payload)
+    price_records = _records(price_payload)
     active_method = optional_string(hourly_payload.get("active_method"), "missing")
     land_method = optional_string(
         land_payload.get("active_method"),
@@ -62,6 +77,8 @@ def load_context(input_dir: Path) -> FeatureContext:
     land_status = optional_string(land_payload.get("source_status"), "missing")
     model_method = optional_string(model_payload.get("active_method"), "fixture_static_score")
     model_status = optional_string(model_payload.get("source_status"), "missing")
+    price_method = optional_string(price_payload.get("active_method"), "fixture_static_price")
+    price_status = optional_string(price_payload.get("source_status"), "missing")
 
     line_loading_by_cell, nodal_price_spread_by_cell = _opf_components(opf_records)
     country_congestion, hub_congestion = _congestion_components(congestion_records)
@@ -71,6 +88,7 @@ def load_context(input_dir: Path) -> FeatureContext:
         "siting_model_artifact": _payload_status(model_payload),
         "opf_artifact": _payload_status(opf_payload),
         "congestion_artifact": _payload_status(congestion_payload),
+        "hourly_price_artifact": _payload_status(price_payload),
     }
     return FeatureContext(
         hourly_carbon_by_country=_average_hourly_carbon(hourly_records),
@@ -85,6 +103,9 @@ def load_context(input_dir: Path) -> FeatureContext:
         ember_hub_congestion=hub_congestion,
         line_loading_by_cell=line_loading_by_cell,
         nodal_price_spread_by_cell=nodal_price_spread_by_cell,
+        price_by_country=_price_profiles(price_records),
+        price_method=price_method,
+        price_source_status=price_status,
         summary=summary,
     )
 
@@ -209,6 +230,32 @@ def _average_hourly_carbon(records: Sequence[dict[str, object]]) -> dict[str, fl
         if isinstance(zone_id, str) and carbon is not None:
             values.setdefault(zone_id, []).append(carbon)
     return {zone_id: sum(items) / len(items) for zone_id, items in values.items()}
+
+
+def _price_profiles(
+    records: Sequence[dict[str, object]],
+) -> dict[str, CountryPriceProfile]:
+    """Per-country price profile from the hourly_price artifact, keyed by zone_id."""
+
+    profiles: dict[str, CountryPriceProfile] = {}
+    for record in records:
+        zone_id = record.get("zone_id")
+        mean_price = optional_float(record.get("mean_price_eur_mwh"))
+        volatility = optional_float(record.get("price_volatility"))
+        if not isinstance(zone_id, str) or mean_price is None or volatility is None:
+            continue
+        sample_year_raw = record.get("sample_year")
+        sample_year = (
+            int(sample_year_raw) if isinstance(sample_year_raw, int | float) else None
+        )
+        source_method = optional_string(record.get("source_method"), "fixture_static_price")
+        profiles[zone_id] = CountryPriceProfile(
+            mean_price_eur_mwh=mean_price,
+            price_volatility=volatility,
+            sample_year=sample_year,
+            source_method=source_method,
+        )
+    return profiles
 
 
 def _load_payload(path: Path) -> dict[str, object]:

@@ -61,6 +61,28 @@ export const MAP_LAYER_OPTIONS = [
     direction: "higher_is_better",
     domain: [0, 1],
   },
+  {
+    // Curated model input. Lower kilometres to surface water = better cooling
+    // siting. Domain bounded to the European 5/95 percentile range so
+    // outliers do not flatten the ramp.
+    name: "water_dist_km",
+    label: "Water access",
+    shortLabel: "Water",
+    unit: "km",
+    direction: "lower_is_better",
+    domain: [0, 8],
+  },
+  {
+    // Normalized cooling-load proxy (0..1, lower is cooler climate). Not a
+    // CDD figure -- labelled as an index so the SPA never claims real-time
+    // climate data.
+    name: "cooling_degree_proxy",
+    label: "Cooling load",
+    shortLabel: "Cool",
+    unit: "",
+    direction: "lower_is_better",
+    domain: [0.2, 0.7],
+  },
 ] as const satisfies readonly MapLayerOption[];
 
 export type MapLayerName = (typeof MAP_LAYER_OPTIONS)[number]["name"];
@@ -150,8 +172,11 @@ export function formatLayerValue(
   if (layerName === "composite_score" || layerName === "buildable_fraction") {
     return `${Math.round(value * 100)}%`;
   }
-  if (layerName === "congestion_index") {
+  if (layerName === "congestion_index" || layerName === "cooling_degree_proxy") {
     return value.toFixed(2);
+  }
+  if (layerName === "water_dist_km") {
+    return `${value.toFixed(1)} km`;
   }
   return `${Math.round(value)} ${option.unit}`;
 }

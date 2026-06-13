@@ -22,3 +22,8 @@ frontend/playwright-report/
 .vercel/
 .env.local
 .env*
+
+# Ember price ingestion: the 40 MB Ember zip and the local SQLite DB stay
+# local. Each developer runs `python3 ember/ingest.py` once on their machine.
+ember/dataset/
+ember/__pycache__/

@@ -27,7 +27,10 @@
       "congestion_index": 0.052,
       "dist_ixp_km": 0.052
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851e15b7fffffff",
@@ -57,7 +60,10 @@
       "carbon_intensity_g_kwh": 0.099,
       "dc_similarity": 0.03
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851fa4c7fffffff",
@@ -87,7 +93,10 @@
       "carbon_intensity_g_kwh": 0.085,
       "dc_similarity": 0.036
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851fa443fffffff",
@@ -117,7 +126,10 @@
       "carbon_intensity_g_kwh": 0.085,
       "dc_similarity": 0.034
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851fa68bfffffff",
@@ -147,7 +159,10 @@
       "dist_ixp_km": 0.083,
       "congestion_index": 0.05
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851ec467fffffff",
@@ -177,7 +192,10 @@
       "carbon_intensity_g_kwh": -0.058,
       "congestion_index": 0.04
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851f91affffffff",
@@ -207,7 +225,10 @@
       "dc_similarity": 0.03,
       "dist_ixp_km": 0.025
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851f8edbfffffff",
@@ -237,7 +258,10 @@
       "dist_ixp_km": 0.1,
       "dc_similarity": 0.033
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851e0697fffffff",
@@ -267,7 +291,10 @@
       "carbon_intensity_g_kwh": -0.039,
       "congestion_index": 0.038
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851e3543fffffff",
@@ -297,7 +324,10 @@
       "carbon_intensity_g_kwh": -0.039,
       "dc_similarity": 0.034
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851f1d4bfffffff",
@@ -308,8 +338,8 @@
     "resolution": 5,
     "mean_price_eur_mwh": 98.9,
     "price_volatility": 41.0,
-    "carbon_intensity_g_kwh": 343.201,
-    "congestion_index": 0.6499,
+    "carbon_intensity_g_kwh": 350.0,
+    "congestion_index": 0.55,
     "headroom_mw": 364.0,
     "dist_hv_substation_km": 7.3,
     "dist_fiber_km": 19.0,
@@ -321,24 +351,16 @@
     "cooling_degree_proxy": 0.43,
     "buildable_fraction": 0.57,
     "dc_similarity": 0.69,
-    "lightgbm_score": 0.4145,
+    "lightgbm_score": 0.52,
     "shap_values": {
-      "buildable_fraction": 0.00333,
-      "carbon_intensity_g_kwh": -0.040909,
-      "congestion_index": -0.012349,
-      "cooling_degree_proxy": -0.009091,
-      "dc_similarity": 0.029364,
-      "dist_fiber_km": -0.006756,
-      "dist_hv_substation_km": 0.002131,
-      "dist_ixp_km": -0.001936,
-      "headroom_mw": -0.0072,
-      "latency_proxy_ms": -0.003618,
-      "mean_price_eur_mwh": -0.025113,
-      "solar_cf": 0.01115,
-      "water_dist_km": -0.001255,
-      "wind_cf": -0.023272
+      "dc_similarity": 0.028,
+      "carbon_intensity_g_kwh": -0.012,
+      "congestion_index": -0.01
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851fa52bfffffff",
@@ -349,8 +371,8 @@
     "resolution": 5,
     "mean_price_eur_mwh": 99.0,
     "price_volatility": 41.0,
-    "carbon_intensity_g_kwh": 343.201,
-    "congestion_index": 0.664,
+    "carbon_intensity_g_kwh": 350.0,
+    "congestion_index": 0.55,
     "headroom_mw": 309.0,
     "dist_hv_substation_km": 5.3,
     "dist_fiber_km": 14.8,
@@ -362,24 +384,16 @@
     "cooling_degree_proxy": 0.45,
     "buildable_fraction": 0.57,
     "dc_similarity": 0.64,
-    "lightgbm_score": 0.4462,
+    "lightgbm_score": 0.55,
     "shap_values": {
-      "buildable_fraction": 0.00333,
-      "carbon_intensity_g_kwh": -0.040909,
-      "congestion_index": -0.014727,
-      "cooling_degree_proxy": -0.011978,
-      "dc_similarity": 0.021636,
-      "dist_fiber_km": 0.004545,
-      "dist_hv_substation_km": 0.021527,
-      "dist_ixp_km": 0.007391,
-      "headroom_mw": -0.02571,
-      "latency_proxy_ms": 0.004591,
-      "mean_price_eur_mwh": -0.025236,
-      "solar_cf": 0.015409,
-      "water_dist_km": 0.018182,
-      "wind_cf": -0.031818
+      "dist_ixp_km": 0.042,
+      "dc_similarity": 0.021,
+      "carbon_intensity_g_kwh": -0.012
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851faeabfffffff",
@@ -390,8 +404,8 @@
     "resolution": 5,
     "mean_price_eur_mwh": 107.3,
     "price_volatility": 44.5,
-    "carbon_intensity_g_kwh": 343.201,
-    "congestion_index": 0.8059,
+    "carbon_intensity_g_kwh": 350.0,
+    "congestion_index": 0.88,
     "headroom_mw": 246.0,
     "dist_hv_substation_km": 4.1,
     "dist_fiber_km": 3.1,
@@ -403,24 +417,16 @@
     "cooling_degree_proxy": 0.47,
     "buildable_fraction": 0.41,
     "dc_similarity": 0.85,
-    "lightgbm_score": 0.4315,
+    "lightgbm_score": 0.55,
     "shap_values": {
-      "buildable_fraction": -0.05,
-      "carbon_intensity_g_kwh": -0.040909,
-      "congestion_index": -0.036364,
-      "cooling_degree_proxy": -0.014862,
-      "dc_similarity": 0.054091,
-      "dist_fiber_km": 0.036044,
-      "dist_hv_substation_km": 0.033164,
-      "dist_ixp_km": 0.022723,
-      "headroom_mw": -0.0469,
-      "latency_proxy_ms": 0.022505,
-      "mean_price_eur_mwh": -0.035411,
-      "solar_cf": 0.017959,
-      "water_dist_km": -0.005305,
-      "wind_cf": -0.025283
+      "dist_ixp_km": 0.1,
+      "congestion_index": -0.076,
+      "dc_similarity": 0.053
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851f15affffffff",
@@ -431,8 +437,8 @@
     "resolution": 5,
     "mean_price_eur_mwh": 98.6,
     "price_volatility": 40.9,
-    "carbon_intensity_g_kwh": 343.201,
-    "congestion_index": 0.6601,
+    "carbon_intensity_g_kwh": 350.0,
+    "congestion_index": 0.54,
     "headroom_mw": 419.0,
     "dist_hv_substation_km": 9.2,
     "dist_fiber_km": 19.2,
@@ -444,24 +450,16 @@
     "cooling_degree_proxy": 0.42,
     "buildable_fraction": 0.58,
     "dc_similarity": 0.75,
-    "lightgbm_score": 0.4133,
+    "lightgbm_score": 0.53,
     "shap_values": {
-      "buildable_fraction": 0.00667,
-      "carbon_intensity_g_kwh": -0.040909,
-      "congestion_index": -0.014065,
-      "cooling_degree_proxy": -0.007647,
-      "dc_similarity": 0.038636,
-      "dist_fiber_km": -0.007295,
-      "dist_hv_substation_km": -0.016291,
-      "dist_ixp_km": -0.002664,
-      "headroom_mw": 0.01131,
-      "latency_proxy_ms": -0.004368,
-      "mean_price_eur_mwh": -0.024742,
-      "solar_cf": 0.008595,
-      "water_dist_km": -0.018182,
-      "wind_cf": -0.015731
+      "dc_similarity": 0.038,
+      "carbon_intensity_g_kwh": -0.012,
+      "buildable_fraction": 0.012
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851f8d47fffffff",
@@ -472,8 +470,8 @@
     "resolution": 5,
     "mean_price_eur_mwh": 101.4,
     "price_volatility": 42.0,
-    "carbon_intensity_g_kwh": 343.201,
-    "congestion_index": 0.6647,
+    "carbon_intensity_g_kwh": 350.0,
+    "congestion_index": 0.58,
     "headroom_mw": 320.0,
     "dist_hv_substation_km": 5.8,
     "dist_fiber_km": 18.4,
@@ -485,24 +483,16 @@
     "cooling_degree_proxy": 0.5,
     "buildable_fraction": 0.57,
     "dc_similarity": 0.65,
-    "lightgbm_score": 0.4167,
+    "lightgbm_score": 0.52,
     "shap_values": {
-      "buildable_fraction": 0.00333,
-      "carbon_intensity_g_kwh": -0.040909,
-      "congestion_index": -0.014844,
-      "cooling_degree_proxy": -0.018182,
-      "dc_similarity": 0.023182,
-      "dist_fiber_km": -0.005142,
-      "dist_hv_substation_km": 0.016676,
-      "dist_ixp_km": 0.001432,
-      "headroom_mw": -0.02201,
-      "latency_proxy_ms": -0.002873,
-      "mean_price_eur_mwh": -0.028175,
-      "solar_cf": 0.022727,
-      "water_dist_km": 0.013324,
-      "wind_cf": -0.031818
+      "dc_similarity": 0.023,
+      "dist_ixp_km": 0.019,
+      "congestion_index": -0.016
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851faa7bfffffff",
@@ -513,8 +503,8 @@
     "resolution": 5,
     "mean_price_eur_mwh": 92.8,
     "price_volatility": 38.5,
-    "carbon_intensity_g_kwh": 343.201,
-    "congestion_index": 0.5992,
+    "carbon_intensity_g_kwh": 350.0,
+    "congestion_index": 0.46,
     "headroom_mw": 418.0,
     "dist_hv_substation_km": 8.9,
     "dist_fiber_km": 11.6,
@@ -526,24 +516,16 @@
     "cooling_degree_proxy": 0.49,
     "buildable_fraction": 0.58,
     "dc_similarity": 0.74,
-    "lightgbm_score": 0.478,
+    "lightgbm_score": 0.59,
     "shap_values": {
-      "buildable_fraction": 0.00667,
-      "carbon_intensity_g_kwh": -0.040909,
-      "congestion_index": -0.003804,
-      "cooling_degree_proxy": -0.017749,
-      "dc_similarity": 0.037091,
-      "dist_fiber_km": 0.013164,
-      "dist_hv_substation_km": -0.013382,
-      "dist_ixp_km": 0.009318,
-      "headroom_mw": 0.01097,
-      "latency_proxy_ms": 0.011309,
-      "mean_price_eur_mwh": -0.017636,
-      "solar_cf": 0.022218,
-      "water_dist_km": -0.017455,
-      "wind_cf": -0.021764
+      "dist_ixp_km": 0.049,
+      "dc_similarity": 0.036,
+      "carbon_intensity_g_kwh": -0.012
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851f22bbfffffff",
@@ -573,7 +555,10 @@
       "congestion_index": 0.054,
       "dist_ixp_km": 0.048
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851f0583fffffff",
@@ -603,7 +588,10 @@
       "carbon_intensity_g_kwh": 0.067,
       "dc_similarity": 0.034
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851f3563fffffff",
@@ -633,7 +621,10 @@
       "congestion_index": 0.058,
       "buildable_fraction": 0.031
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "85089b1bfffffff",
@@ -663,7 +654,10 @@
       "carbon_intensity_g_kwh": -0.058,
       "buildable_fraction": 0.03
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "85394463fffffff",
@@ -693,7 +687,10 @@
       "dc_similarity": 0.038,
       "dist_ixp_km": -0.013
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "85184b57fffffff",
@@ -723,7 +720,10 @@
       "congestion_index": 0.048,
       "buildable_fraction": 0.03
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "85390ca3fffffff",
@@ -753,7 +753,10 @@
       "carbon_intensity_g_kwh": 0.081,
       "dc_similarity": 0.024
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "85391c73fffffff",
@@ -783,7 +786,10 @@
       "congestion_index": 0.058,
       "buildable_fraction": 0.031
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "8539540bfffffff",
@@ -813,7 +819,10 @@
       "congestion_index": 0.042,
       "buildable_fraction": 0.031
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851126d3fffffff",
@@ -843,7 +852,10 @@
       "dist_ixp_km": 0.1,
       "dc_similarity": 0.03
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "8508d183fffffff",
@@ -873,7 +885,10 @@
       "dist_ixp_km": -0.08,
       "congestion_index": 0.03
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "85112497fffffff",
@@ -903,7 +918,10 @@
       "congestion_index": 0.056,
       "dist_ixp_km": 0.046
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "85186b6ffffffff",
@@ -933,7 +951,10 @@
       "dist_ixp_km": -0.067,
       "congestion_index": 0.052
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "85194d2bfffffff",
@@ -963,7 +984,10 @@
       "dist_ixp_km": 0.069,
       "dc_similarity": 0.034
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851f9027fffffff",
@@ -993,7 +1017,10 @@
       "dc_similarity": 0.026,
       "congestion_index": 0.012
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "85396817fffffff",
@@ -1023,7 +1050,10 @@
       "dist_ixp_km": 0.1,
       "dc_similarity": 0.036
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851fb467fffffff",
@@ -1053,7 +1083,10 @@
       "dist_ixp_km": 0.1,
       "dc_similarity": 0.057
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851f8563fffffff",
@@ -1083,7 +1116,10 @@
       "dist_ixp_km": 0.052,
       "congestion_index": 0.034
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "85197277fffffff",
@@ -1113,7 +1149,10 @@
       "congestion_index": 0.04,
       "buildable_fraction": 0.03
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851942c7fffffff",
@@ -1143,7 +1182,10 @@
       "congestion_index": 0.044,
       "buildable_fraction": 0.03
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "85195d33fffffff",
@@ -1173,7 +1215,10 @@
       "congestion_index": -0.078,
       "carbon_intensity_g_kwh": 0.053
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851951b7fffffff",
@@ -1203,7 +1248,10 @@
       "dc_similarity": 0.024,
       "dist_ixp_km": 0.013
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "8519587bfffffff",
@@ -1233,7 +1281,10 @@
       "dist_ixp_km": 0.034,
       "dc_similarity": 0.031
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851eda77fffffff",
@@ -1263,7 +1314,10 @@
       "dc_similarity": 0.026,
       "carbon_intensity_g_kwh": -0.021
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851ec26bfffffff",
@@ -1293,7 +1347,10 @@
       "buildable_fraction": 0.03,
       "dist_ixp_km": 0.023
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851e130ffffffff",
@@ -1323,7 +1380,10 @@
       "carbon_intensity_g_kwh": 0.048,
       "buildable_fraction": 0.031
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851e037bfffffff",
@@ -1353,7 +1413,10 @@
       "carbon_intensity_g_kwh": 0.058,
       "dc_similarity": 0.031
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "85182a3bfffffff",
@@ -1364,8 +1427,8 @@
     "resolution": 5,
     "mean_price_eur_mwh": 104.6,
     "price_volatility": 43.4,
-    "carbon_intensity_g_kwh": 343.201,
-    "congestion_index": 0.6876,
+    "carbon_intensity_g_kwh": 350.0,
+    "congestion_index": 0.55,
     "headroom_mw": 313.0,
     "dist_hv_substation_km": 5.4,
     "dist_fiber_km": 16.7,
@@ -1377,24 +1440,16 @@
     "cooling_degree_proxy": 0.44,
     "buildable_fraction": 0.57,
     "dc_similarity": 0.64,
-    "lightgbm_score": 0.4778,
+    "lightgbm_score": 0.54,
     "shap_values": {
-      "buildable_fraction": 0.00333,
-      "carbon_intensity_g_kwh": -0.040909,
-      "congestion_index": -0.018705,
-      "cooling_degree_proxy": -0.010535,
-      "dc_similarity": 0.021636,
-      "dist_fiber_km": -0.000567,
-      "dist_hv_substation_km": 0.02056,
-      "dist_ixp_km": 0.0034,
-      "headroom_mw": -0.02436,
-      "latency_proxy_ms": 0.000859,
-      "mean_price_eur_mwh": -0.032102,
-      "solar_cf": 0.012855,
-      "water_dist_km": 0.017371,
-      "wind_cf": 0.024984
+      "dist_ixp_km": 0.027,
+      "dc_similarity": 0.021,
+      "carbon_intensity_g_kwh": -0.012
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "85182c17fffffff",
@@ -1405,8 +1460,8 @@
     "resolution": 5,
     "mean_price_eur_mwh": 109.9,
     "price_volatility": 45.6,
-    "carbon_intensity_g_kwh": 343.201,
-    "congestion_index": 0.7866,
+    "carbon_intensity_g_kwh": 350.0,
+    "congestion_index": 0.84,
     "headroom_mw": 238.0,
     "dist_hv_substation_km": 3.8,
     "dist_fiber_km": 2.7,
@@ -1418,24 +1473,16 @@
     "cooling_degree_proxy": 0.42,
     "buildable_fraction": 0.41,
     "dc_similarity": 0.83,
-    "lightgbm_score": 0.489,
+    "lightgbm_score": 0.56,
     "shap_values": {
-      "buildable_fraction": -0.05,
-      "carbon_intensity_g_kwh": -0.040909,
-      "congestion_index": -0.035389,
-      "cooling_degree_proxy": -0.007647,
-      "dc_similarity": 0.051,
-      "dist_fiber_km": 0.036364,
-      "dist_hv_substation_km": 0.036073,
-      "dist_ixp_km": 0.022727,
-      "headroom_mw": -0.0496,
-      "latency_proxy_ms": 0.022727,
-      "mean_price_eur_mwh": -0.036364,
-      "solar_cf": 0.008595,
-      "water_dist_km": -0.000444,
-      "wind_cf": 0.031818
+      "dist_ixp_km": 0.1,
+      "congestion_index": -0.068,
+      "dc_similarity": 0.049
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "85182e5bfffffff",
@@ -1446,8 +1493,8 @@
     "resolution": 5,
     "mean_price_eur_mwh": 107.2,
     "price_volatility": 44.4,
-    "carbon_intensity_g_kwh": 343.201,
-    "congestion_index": 0.6141,
+    "carbon_intensity_g_kwh": 350.0,
+    "congestion_index": 0.35,
     "headroom_mw": 489.0,
     "dist_hv_substation_km": 9.9,
     "dist_fiber_km": 25.1,
@@ -1459,24 +1506,16 @@
     "cooling_degree_proxy": 0.42,
     "buildable_fraction": 0.7,
     "dc_similarity": 0.49,
-    "lightgbm_score": 0.4987,
+    "lightgbm_score": 0.58,
     "shap_values": {
-      "buildable_fraction": 0.04667,
-      "carbon_intensity_g_kwh": -0.040909,
-      "congestion_index": -0.006313,
-      "cooling_degree_proxy": -0.007647,
-      "dc_similarity": -0.001545,
-      "dist_fiber_km": -0.023178,
-      "dist_hv_substation_km": -0.023076,
-      "dist_ixp_km": 0.006391,
-      "headroom_mw": 0.03486,
-      "latency_proxy_ms": 0.001605,
-      "mean_price_eur_mwh": -0.035287,
-      "solar_cf": 0.00945,
-      "water_dist_km": 0.007655,
-      "wind_cf": 0.030011
+      "dist_ixp_km": 0.038,
+      "congestion_index": 0.03,
+      "buildable_fraction": 0.03
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "85075dd7fffffff",
@@ -1506,7 +1545,10 @@
       "dist_ixp_km": -0.1,
       "congestion_index": 0.048
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851f99cffffffff",
@@ -1536,7 +1578,10 @@
       "congestion_index": -0.064,
       "dc_similarity": 0.057
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851e832bfffffff",
@@ -1566,7 +1611,10 @@
       "congestion_index": 0.05,
       "buildable_fraction": 0.031
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851e9a0ffffffff",
@@ -1596,7 +1644,10 @@
       "congestion_index": 0.048,
       "buildable_fraction": 0.031
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851e8053fffffff",
@@ -1626,7 +1677,10 @@
       "dc_similarity": 0.03,
       "carbon_intensity_g_kwh": 0.016
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851f9843fffffff",
@@ -1656,7 +1710,10 @@
       "dc_similarity": 0.039,
       "carbon_intensity_g_kwh": 0.016
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851f4033fffffff",
@@ -1686,7 +1743,10 @@
       "congestion_index": 0.036,
       "buildable_fraction": 0.03
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851fa3cffffffff",
@@ -1716,7 +1776,10 @@
       "dist_ixp_km": 0.038,
       "dc_similarity": 0.036
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851f6077fffffff",
@@ -1746,7 +1809,10 @@
       "carbon_intensity_g_kwh": 0.099,
       "congestion_index": 0.054
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "85196953fffffff",
@@ -1776,7 +1842,10 @@
       "congestion_index": -0.08,
       "dc_similarity": 0.048
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851fa5dbfffffff",
@@ -1806,7 +1875,10 @@
       "congestion_index": 0.034,
       "buildable_fraction": 0.031
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "85196d87fffffff",
@@ -1836,7 +1908,10 @@
       "congestion_index": 0.044,
       "buildable_fraction": 0.031
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "85196bb7fffffff",
@@ -1866,7 +1941,10 @@
       "dc_similarity": 0.024,
       "congestion_index": -0.018
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "85098113fffffff",
@@ -1896,7 +1974,10 @@
       "congestion_index": 0.06,
       "buildable_fraction": 0.031
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "8509993bfffffff",
@@ -1926,7 +2007,10 @@
       "dist_ixp_km": 0.1,
       "dc_similarity": 0.023
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "850982abfffffff",
@@ -1956,7 +2040,10 @@
       "buildable_fraction": 0.03,
       "congestion_index": 0.028
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "8508158ffffffff",
@@ -1986,7 +2073,10 @@
       "congestion_index": 0.042,
       "dist_ixp_km": -0.031
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851f09b3fffffff",
@@ -2016,7 +2106,10 @@
       "congestion_index": 0.032,
       "buildable_fraction": 0.03
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851e232ffffffff",
@@ -2046,7 +2139,10 @@
       "dc_similarity": 0.023,
       "dist_ixp_km": 0.014
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851e2e6bfffffff",
@@ -2076,7 +2172,10 @@
       "congestion_index": 0.056,
       "buildable_fraction": 0.031
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851e24abfffffff",
@@ -2106,7 +2205,10 @@
       "buildable_fraction": 0.03,
       "congestion_index": 0.028
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851f53cbfffffff",
@@ -2136,7 +2238,10 @@
       "dist_ixp_km": 0.1,
       "dc_similarity": 0.024
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "85393363fffffff",
@@ -2166,7 +2271,10 @@
       "carbon_intensity_g_kwh": 0.081,
       "dc_similarity": 0.031
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "8539220ffffffff",
@@ -2196,7 +2304,10 @@
       "congestion_index": 0.05,
       "buildable_fraction": 0.031
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851eeeb7fffffff",
@@ -2226,7 +2337,10 @@
       "carbon_intensity_g_kwh": 0.03,
       "dc_similarity": 0.026
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851e0b3bfffffff",
@@ -2256,7 +2370,10 @@
       "buildable_fraction": 0.031,
       "carbon_intensity_g_kwh": 0.03
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851ef593fffffff",
@@ -2286,7 +2403,10 @@
       "congestion_index": 0.056,
       "buildable_fraction": 0.031
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851f25abfffffff",
@@ -2297,8 +2417,8 @@
     "resolution": 5,
     "mean_price_eur_mwh": 48.8,
     "price_volatility": 14.1,
-    "carbon_intensity_g_kwh": 24.514,
-    "congestion_index": 0.4231,
+    "carbon_intensity_g_kwh": 25.0,
+    "congestion_index": 0.46,
     "headroom_mw": 417.0,
     "dist_hv_substation_km": 8.9,
     "dist_fiber_km": 14.6,
@@ -2310,24 +2430,16 @@
     "cooling_degree_proxy": 0.35,
     "buildable_fraction": 0.58,
     "dc_similarity": 0.74,
-    "lightgbm_score": 0.6641,
+    "lightgbm_score": 0.72,
     "shap_values": {
-      "buildable_fraction": 0.00667,
-      "carbon_intensity_g_kwh": 0.040909,
-      "congestion_index": 0.025876,
-      "cooling_degree_proxy": 0.002455,
-      "dc_similarity": 0.037091,
-      "dist_fiber_km": 0.005084,
-      "dist_hv_substation_km": -0.013382,
-      "dist_ixp_km": 0.002655,
-      "headroom_mw": 0.01063,
-      "latency_proxy_ms": 0.005336,
-      "mean_price_eur_mwh": 0.036291,
-      "solar_cf": -0.003318,
-      "water_dist_km": -0.016644,
-      "wind_cf": 0.024481
+      "carbon_intensity_g_kwh": 0.138,
+      "dc_similarity": 0.036,
+      "dist_ixp_km": 0.024
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "8508c683fffffff",
@@ -2338,8 +2450,8 @@
     "resolution": 5,
     "mean_price_eur_mwh": 50.0,
     "price_volatility": 14.5,
-    "carbon_intensity_g_kwh": 24.514,
-    "congestion_index": 0.3643,
+    "carbon_intensity_g_kwh": 25.0,
+    "congestion_index": 0.25,
     "headroom_mw": 548.0,
     "dist_hv_substation_km": 11.9,
     "dist_fiber_km": 30.0,
@@ -2351,24 +2463,16 @@
     "cooling_degree_proxy": 0.22,
     "buildable_fraction": 0.71,
     "dc_similarity": 0.53,
-    "lightgbm_score": 0.6188,
+    "lightgbm_score": 0.62,
     "shap_values": {
-      "buildable_fraction": 0.05,
-      "carbon_intensity_g_kwh": 0.040909,
-      "congestion_index": 0.035789,
-      "cooling_degree_proxy": 0.018182,
-      "dc_similarity": 0.004636,
-      "dist_fiber_km": -0.036364,
-      "dist_hv_substation_km": -0.036364,
-      "dist_ixp_km": -0.022727,
-      "headroom_mw": 0.05,
-      "latency_proxy_ms": -0.022727,
-      "mean_price_eur_mwh": 0.034822,
-      "solar_cf": -0.022727,
-      "water_dist_km": -0.006116,
-      "wind_cf": 0.031519
+      "carbon_intensity_g_kwh": 0.138,
+      "dist_ixp_km": -0.1,
+      "congestion_index": 0.05
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851f05bbfffffff",
@@ -2379,8 +2483,8 @@
     "resolution": 5,
     "mean_price_eur_mwh": 53.1,
     "price_volatility": 15.4,
-    "carbon_intensity_g_kwh": 24.514,
-    "congestion_index": 0.5081,
+    "carbon_intensity_g_kwh": 25.0,
+    "congestion_index": 0.58,
     "headroom_mw": 327.0,
     "dist_hv_substation_km": 6.0,
     "dist_fiber_km": 9.6,
@@ -2392,24 +2496,16 @@
     "cooling_degree_proxy": 0.38,
     "buildable_fraction": 0.57,
     "dc_similarity": 0.66,
-    "lightgbm_score": 0.6848,
+    "lightgbm_score": 0.75,
     "shap_values": {
-      "buildable_fraction": 0.00333,
-      "carbon_intensity_g_kwh": 0.040909,
-      "congestion_index": 0.011549,
-      "cooling_degree_proxy": -0.001876,
-      "dc_similarity": 0.024727,
-      "dist_fiber_km": 0.018545,
-      "dist_hv_substation_km": 0.014742,
-      "dist_ixp_km": 0.020236,
-      "headroom_mw": -0.01965,
-      "latency_proxy_ms": 0.015786,
-      "mean_price_eur_mwh": 0.031018,
-      "solar_cf": 0.002641,
-      "water_dist_km": 0.010895,
-      "wind_cf": 0.011913
+      "carbon_intensity_g_kwh": 0.138,
+      "dist_ixp_km": 0.091,
+      "dc_similarity": 0.024
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "85088667fffffff",
@@ -2420,8 +2516,8 @@
     "resolution": 5,
     "mean_price_eur_mwh": 57.7,
     "price_volatility": 16.7,
-    "carbon_intensity_g_kwh": 24.514,
-    "congestion_index": 0.6136,
+    "carbon_intensity_g_kwh": 25.0,
+    "congestion_index": 0.84,
     "headroom_mw": 234.0,
     "dist_hv_substation_km": 3.7,
     "dist_fiber_km": 3.1,
@@ -2433,24 +2529,16 @@
     "cooling_degree_proxy": 0.32,
     "buildable_fraction": 0.41,
     "dc_similarity": 0.83,
-    "lightgbm_score": 0.6485,
+    "lightgbm_score": 0.7,
     "shap_values": {
-      "buildable_fraction": -0.05,
-      "carbon_intensity_g_kwh": 0.040909,
-      "congestion_index": -0.006233,
-      "cooling_degree_proxy": 0.006782,
-      "dc_similarity": 0.051,
-      "dist_fiber_km": 0.036044,
-      "dist_hv_substation_km": 0.036364,
-      "dist_ixp_km": 0.021695,
-      "headroom_mw": -0.05,
-      "latency_proxy_ms": 0.022505,
-      "mean_price_eur_mwh": 0.025382,
-      "solar_cf": -0.008427,
-      "water_dist_km": 0.001985,
-      "wind_cf": 0.020459
+      "carbon_intensity_g_kwh": 0.138,
+      "dist_ixp_km": 0.096,
+      "congestion_index": -0.068
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "8508a807fffffff",
@@ -2461,8 +2549,8 @@
     "resolution": 5,
     "mean_price_eur_mwh": 48.6,
     "price_volatility": 14.1,
-    "carbon_intensity_g_kwh": 24.514,
-    "congestion_index": 0.3529,
+    "carbon_intensity_g_kwh": 25.0,
+    "congestion_index": 0.22,
     "headroom_mw": 528.0,
     "dist_hv_substation_km": 11.0,
     "dist_fiber_km": 24.3,
@@ -2474,24 +2562,16 @@
     "cooling_degree_proxy": 0.27,
     "buildable_fraction": 0.71,
     "dc_similarity": 0.51,
-    "lightgbm_score": 0.6695,
+    "lightgbm_score": 0.71,
     "shap_values": {
-      "buildable_fraction": 0.05,
-      "carbon_intensity_g_kwh": 0.040909,
-      "congestion_index": 0.036364,
-      "cooling_degree_proxy": 0.013996,
-      "dc_similarity": 0.001545,
-      "dist_fiber_km": -0.021018,
-      "dist_hv_substation_km": -0.033745,
-      "dist_ixp_km": -0.007395,
-      "headroom_mw": 0.04798,
-      "latency_proxy_ms": -0.003618,
-      "mean_price_eur_mwh": 0.036364,
-      "solar_cf": -0.016941,
-      "water_dist_km": -0.000444,
-      "wind_cf": 0.025486
+      "carbon_intensity_g_kwh": 0.138,
+      "congestion_index": 0.056,
+      "buildable_fraction": 0.031
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "8508f62ffffffff",
@@ -2502,8 +2582,8 @@
     "resolution": 5,
     "mean_price_eur_mwh": 52.1,
     "price_volatility": 15.1,
-    "carbon_intensity_g_kwh": 24.514,
-    "congestion_index": 0.3691,
+    "carbon_intensity_g_kwh": 25.0,
+    "congestion_index": 0.31,
     "headroom_mw": 451.0,
     "dist_hv_substation_km": 8.2,
     "dist_fiber_km": 30.0,
@@ -2515,24 +2595,16 @@
     "cooling_degree_proxy": 0.25,
     "buildable_fraction": 0.7,
     "dc_similarity": 0.46,
-    "lightgbm_score": 0.6236,
+    "lightgbm_score": 0.64,
     "shap_values": {
-      "buildable_fraction": 0.04667,
-      "carbon_intensity_g_kwh": 0.040909,
-      "congestion_index": 0.034982,
-      "cooling_degree_proxy": 0.016884,
-      "dc_similarity": -0.006182,
-      "dist_fiber_km": -0.036364,
-      "dist_hv_substation_km": -0.006596,
-      "dist_ixp_km": -0.018918,
-      "headroom_mw": 0.02207,
-      "latency_proxy_ms": -0.020041,
-      "mean_price_eur_mwh": 0.032247,
-      "solar_cf": -0.021195,
-      "water_dist_km": 0.018182,
-      "wind_cf": 0.020962
+      "carbon_intensity_g_kwh": 0.138,
+      "dist_ixp_km": -0.058,
+      "congestion_index": 0.038
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851e1217fffffff",
@@ -2562,7 +2634,10 @@
       "carbon_intensity_g_kwh": 0.039,
       "buildable_fraction": 0.031
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   },
   {
     "cell_id": "851e029bfffffff",
@@ -2592,6 +2667,9 @@
       "dist_ixp_km": 0.082,
       "congestion_index": 0.042
     },
-    "exclusion_flag": false
+    "exclusion_flag": false,
+    "nearest_substation_kv": null,
+    "nearest_substation_distance_km": null,
+    "nearest_substation_capacity_mva": null
   }
 ]

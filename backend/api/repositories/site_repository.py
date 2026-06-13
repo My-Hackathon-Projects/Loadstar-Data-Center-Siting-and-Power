@@ -39,6 +39,9 @@ LAYERABLE_SITE_FIELDS = frozenset(
         "headroom_mw",
         "dist_fiber_km",
         "buildable_fraction",
+        # Curated model inputs surfaced as map layers; both are lower-is-better.
+        "water_dist_km",
+        "cooling_degree_proxy",
     }
 )
 

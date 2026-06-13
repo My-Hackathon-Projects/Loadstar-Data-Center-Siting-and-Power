@@ -113,6 +113,12 @@ class SiteFeature(BaseModel):
     lightgbm_score: float = Field(ge=0, le=1)
     shap_values: dict[str, float]
     exclusion_flag: bool
+    # Optional grid-aware enrichment populated by `backend.pipeline.pypsa_network`
+    # when the real PyPSA-Eur ingestion has run. Stays None on fixture-only
+    # deployments so existing artifacts continue to validate.
+    nearest_substation_kv: float | None = None
+    nearest_substation_distance_km: float | None = None
+    nearest_substation_capacity_mva: float | None = None
 
 
 class LayerFeatureProperties(SiteFeature):

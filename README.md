@@ -218,8 +218,10 @@ feature_engineering ──> site_features_subset.json   (rehydration: embeds lig
 **Full pipeline run:**
 
 ```bash
+python3 ember/ingest.py                                                # one-time: build local Ember price DB
 python3 -m backend.pipeline.subset_ingestion --countries SE,DE,IE
 python3 -m backend.pipeline.hourly_carbon --countries SE,DE,IE
+python3 -m backend.pipeline.hourly_price --countries SE,DE,IE          # Ember overlay (preferred when DB exists)
 python3 -m backend.pipeline.alphaearth_land --countries SE,DE,IE
 python3 -m backend.pipeline.feature_engineering --countries SE,DE,IE
 python3 -m backend.pipeline.siting_model --countries SE,DE,IE
@@ -227,17 +229,18 @@ python3 -m backend.pipeline.feature_engineering --countries SE,DE,IE   # rehydra
 python3 -m backend.pipeline.build_layer_assets                        # static map overlays
 ```
 
-**Trained-model wiring (where ML reaches scoring):**
+**Trained-model wiring (where ML and real data reach scoring):**
 
-| Model | Output field | Consumer |
+| Model / source | Output field | Consumer |
 |---|---|---|
 | LightGBM siting classifier (`backend/pipeline/siting_model_trainer.py`) | `lightgbm_score` per cell | `engine.scoring._SCORE_FACTORS["ml"]` (weight 0.08) |
 | AlphaEarth Random Forest (`backend/pipeline/alphaearth_land_earth_engine.py`) | `buildable_fraction`, `dc_similarity` per cell | `engine.scoring._SCORE_FACTORS["land"]` blends both (weight 0.08) |
+| Ember CSV ledger (`ember/ingest.py` → `backend/pipeline/hourly_price.py`) | `mean_price_eur_mwh`, `price_volatility` per country | `engine.scoring._SCORE_FACTORS["price"]` (weight 0.18) — overrides curated reference values when the local Ember DB is present |
 
 **Where the ML output reaches the API.** The `site_repository` (`backend/api/repositories/site_repository.py`) reads `data/processed/subset/site_features_subset.json` if present, validates each record against `SiteFeature`, and **overlays** matching cells onto the curated 81-cell base. The fixture stays the source of truth for cells the pipeline did not touch, so:
 
 - The map covers all 81 cells (30 countries).
-- The 15 `SE,DE,IE` cells the pipeline ran on get **trained** `lightgbm_score`, `buildable_fraction`, `dc_similarity`.
+- The 15 `SE,DE,IE` cells the pipeline ran on get **trained** `lightgbm_score`, `buildable_fraction`, `dc_similarity`, plus **real Ember 2025 prices** (SE €42.64, DE €89.48, IE €114.38 per MWh) when `ember/dataset/ember_prices.db` exists.
 - A schema regression in the pipeline output drops only the offending records, never the whole list (per-record `model_validate`).
 
 ---
@@ -309,7 +312,8 @@ Every external dependency has a documented fallback. The demo never breaks becau
 | Postgres | Service down | Async optimizer rejects with 503; sync still works | startup log |
 | Redis | `REDIS_URL` unset | In-process LRU cache (256 entries) | `LruResultCache` initialized |
 | Pipeline JSON | Missing or malformed | Fixture base only (81 cells, no ML overlay) | `repository.fixture_active` |
-| Ember hourly | `EMBER_HOURLY_PRICE_URL` unset | Ember monthly broadcast | `hourly_carbon_subset.json` |
+| Ember hourly carbon | `EMBER_HOURLY_PRICE_URL` unset | Ember monthly broadcast | `hourly_carbon_subset.json` |
+| Ember CSV prices | `ember/dataset/ember_prices.db` missing | Curated reference prices (flat shape) | `hourly_price_subset.json::active_method=fixture_static_price` |
 
 Surface every active fallback at `GET /meta/source-artifacts` (returns checksums + status per artifact + a 20-character data-version fingerprint).
 
