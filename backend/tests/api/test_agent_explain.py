@@ -123,7 +123,7 @@ def test_extract_response_text_handles_output_text_attr() -> None:
     class _Stub:
         output_text: str
 
-    assert llm_service._extract_response_text(_Stub(output_text="hi")) == "hi"
+    assert llm_service.extract_response_text(_Stub(output_text="hi")) == "hi"
 
 
 def test_extract_response_text_walks_structured_output() -> None:
@@ -141,4 +141,4 @@ def test_extract_response_text_walks_structured_output() -> None:
         output_text: None = None
 
     payload = _Stub(output=[_Item(content=[_Block(text="from-blocks")])])
-    assert llm_service._extract_response_text(payload) == "from-blocks"
+    assert llm_service.extract_response_text(payload) == "from-blocks"

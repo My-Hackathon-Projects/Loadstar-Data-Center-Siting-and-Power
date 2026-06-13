@@ -1,4 +1,4 @@
-.PHONY: setup dev frontend-dev web-dev frontend-types lint format typecheck test migrate migrate-sqlite pipeline-subset ingest-subset carbon-subset alphaearth-land-subset features-subset siting-model-subset layer-assets
+.PHONY: setup dev frontend-dev web-dev frontend-types lint format typecheck test e2e migrate migrate-sqlite pipeline-subset ingest-subset carbon-subset alphaearth-land-subset features-subset siting-model-subset layer-assets
 
 setup:
 	python3 -m pip install -r requirements.txt
@@ -30,6 +30,14 @@ typecheck:
 test:
 	python3 -m pytest
 	npm --prefix frontend run test
+
+# End-to-end demo-path test. Kept out of `test` because it boots the API and
+# Vite dev servers (see frontend/playwright.config.ts) rather than running as a
+# fast, serverless unit gate. Regenerates the static layer overlays first so the
+# dashboard's static-asset probe resolves and the console stays clean.
+e2e:
+	python3 -m backend.pipeline.build_layer_assets
+	npm --prefix frontend run test:e2e
 
 migrate:
 	python3 -m backend.db.migrate

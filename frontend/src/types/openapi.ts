@@ -4,6 +4,26 @@
  */
 
 export interface paths {
+    "/agent/chat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Chat
+         * @description Run an agent-driven site search for the chat panel and return a dashboard action.
+         */
+        post: operations["chat_agent_chat_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/agent/explain": {
         parameters: {
             query?: never;
@@ -228,6 +248,69 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * AgentAction
+         * @description Structured dashboard action the chat asks the UI to apply.
+         *
+         *     For a `search` action the UI writes `applied` into its store (which drives the
+         *     existing search query) and flies the map to `focus_cell_id`. `none` leaves the
+         *     dashboard untouched.
+         */
+        AgentAction: {
+            applied?: components["schemas"]["SearchRequest"] | null;
+            /** Focus Cell Id */
+            focus_cell_id?: string | null;
+            search?: components["schemas"]["SearchResponse"] | null;
+            /**
+             * Type
+             * @default none
+             * @enum {string}
+             */
+            type: "search" | "none";
+        };
+        /**
+         * AgentChatRequest
+         * @description Payload for `POST /agent/chat`. Fred runs a real search from a free-text ask.
+         */
+        AgentChatRequest: {
+            /** Message */
+            message: string;
+            /** Power Mw */
+            power_mw: number;
+            /** Selected Cell Id */
+            selected_cell_id?: string | null;
+            /**
+             * Workload Type
+             * @default training
+             * @enum {string}
+             */
+            workload_type: "training" | "inference" | "mixed";
+        };
+        /**
+         * AgentChatResponse
+         * @description Result of an agent chat turn.
+         *
+         *     The deterministic narration is the demo-safe default; a live LLM only
+         *     rephrases the reply around the same engine-computed numbers. `source` drives
+         *     the same "Live" vs "template" pill as the explain endpoint.
+         */
+        AgentChatResponse: {
+            action: components["schemas"]["AgentAction"];
+            /**
+             * Cache Key
+             * @default
+             */
+            cache_key: string;
+            /** Message */
+            message: string;
+            /** Model */
+            model?: string | null;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "openai" | "template";
+        };
         /** ApiErrorDetail */
         ApiErrorDetail: {
             /** Code */
@@ -857,6 +940,39 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    chat_agent_chat_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentChatRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentChatResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     explain_agent_explain_post: {
         parameters: {
             query?: never;

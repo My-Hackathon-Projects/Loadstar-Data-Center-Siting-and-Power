@@ -17,3 +17,5 @@ frontend/vite.config.d.ts
 frontend/vite.config.js
 AGENTS.md
 CLAUDE.md
+frontend/test-results/
+frontend/playwright-report/

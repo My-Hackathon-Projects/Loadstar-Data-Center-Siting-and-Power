@@ -5,10 +5,11 @@ import {
   DEFAULT_DEMO_POWER_MW,
   DEFAULT_LOAD_PROFILE,
   DEFAULT_SEARCH_TOP_K,
+  DEFAULT_WEIGHTS,
   DEFAULT_WORKLOAD_TYPE,
 } from "../config/defaults";
 import type { MapLayerName } from "../features/map/mapLayers";
-import type { OptimizeRequest, SearchRequest } from "../types/api";
+import type { OptimizeRequest, SearchRequest, Weights } from "../types/api";
 
 type WorkloadType = SearchRequest["workload_type"];
 type LoadProfile = OptimizeRequest["load_profile"];
@@ -24,6 +25,10 @@ interface UiState {
   powerMw: number;
   workloadType: WorkloadType;
   topK: number;
+  /** Scoring weights (optional `SearchRequest.weights`), driven by the sliders. */
+  weights: Weights;
+  /** Active country filter (optional `SearchRequest.country_filter`). */
+  countryFilter: string[];
   /** Optimizer-form state. */
   loadProfile: LoadProfile;
   clearComparison: () => void;
@@ -35,8 +40,12 @@ interface UiState {
       workloadType: WorkloadType;
       topK: number;
       loadProfile: LoadProfile;
+      weights: Weights;
+      countryFilter: string[];
     }>,
   ) => void;
+  setWeight: (factor: keyof Weights, value: number) => void;
+  toggleCountryFilter: (code: string) => void;
   toggleComparisonCell: (cellId: string) => void;
 }
 
@@ -47,11 +56,21 @@ export const useUiStore = create<UiState>((set) => ({
   powerMw: DEFAULT_DEMO_POWER_MW,
   workloadType: DEFAULT_WORKLOAD_TYPE,
   topK: DEFAULT_SEARCH_TOP_K,
+  weights: DEFAULT_WEIGHTS,
+  countryFilter: [],
   loadProfile: DEFAULT_LOAD_PROFILE,
   clearComparison: () => set({ comparisonCellIds: [] }),
   setActiveLayer: (layerName) => set({ activeLayer: layerName }),
   setSelectedCellId: (cellId) => set({ selectedCellId: cellId }),
   setSearchParams: (next) => set(next),
+  setWeight: (factor, value) =>
+    set((state) => ({ weights: { ...state.weights, [factor]: value } })),
+  toggleCountryFilter: (code) =>
+    set((state) => ({
+      countryFilter: state.countryFilter.includes(code)
+        ? state.countryFilter.filter((existing) => existing !== code)
+        : [...state.countryFilter, code],
+    })),
   toggleComparisonCell: (cellId) =>
     set((state) => {
       if (state.comparisonCellIds.includes(cellId)) {

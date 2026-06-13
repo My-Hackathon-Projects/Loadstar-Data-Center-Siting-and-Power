@@ -3,6 +3,9 @@ import type { components } from "./openapi";
 type Schema<Name extends keyof components["schemas"]> =
   components["schemas"][Name];
 
+export type AgentAction = Schema<"AgentAction">;
+export type AgentChatRequest = Schema<"AgentChatRequest">;
+export type AgentChatResponse = Schema<"AgentChatResponse">;
 export type ApiErrorDetail = Schema<"ApiErrorDetail">;
 export type ApiErrorResponse = Schema<"ApiErrorResponse">;
 export type AssumptionsResponse = Schema<"AssumptionsResponse">;

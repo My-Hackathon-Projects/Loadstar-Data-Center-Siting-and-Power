@@ -1,3 +1,4 @@
+import { RAMP_STOPS } from "../../styles/tokens";
 import type { LayerResponse, RankedSite } from "../../types/api";
 
 type LayerDirection = "higher_is_better" | "lower_is_better";
@@ -134,13 +135,10 @@ export function layerFillColor(
 ): [number, number, number, number] {
   const option = layerOption(layerName);
   const normalized = normalizeValue(value, option.domain, option.direction);
-  const low = [224, 88, 64] as const;
-  const mid = [241, 178, 74] as const;
-  const high = [23, 126, 118] as const;
   const color =
     normalized < 0.5
-      ? interpolateColor(low, mid, normalized / 0.5)
-      : interpolateColor(mid, high, (normalized - 0.5) / 0.5);
+      ? interpolateColor(RAMP_STOPS.low, RAMP_STOPS.mid, normalized / 0.5)
+      : interpolateColor(RAMP_STOPS.mid, RAMP_STOPS.high, (normalized - 0.5) / 0.5);
   return [color[0], color[1], color[2], isRanked ? 210 : 86];
 }
 

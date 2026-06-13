@@ -19,19 +19,17 @@ export function RankedSites({ isLoading, results }: RankedSitesProps) {
     (state) => state.toggleComparisonCell,
   );
   if (isLoading) {
-    return (
-      <p className="mt-4 text-sm text-slate-500">Loading ranked cells...</p>
-    );
+    return <p className="mt-3 text-sm text-dim">Loading ranked cells...</p>;
   }
   if (results.length === 0) {
     return (
-      <p className="mt-4 rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-500">
+      <p className="mt-3 rounded-lg border border-subtle p-3 text-sm text-dim">
         No cells pass exclusions and headroom for this request.
       </p>
     );
   }
   return (
-    <div className="mt-4 grid gap-2">
+    <div className="mt-3 grid gap-2">
       {results.map((result, index) => {
         const isSelected = selectedCellId === result.site.cell_id;
         const isCompared = comparisonCellIds.includes(result.site.cell_id);
@@ -44,10 +42,10 @@ export function RankedSites({ isLoading, results }: RankedSitesProps) {
 
         return (
           <div
-            className={`rounded-md border p-3 transition hover:border-cyan-700 ${
+            className={`rounded-lg border p-3 transition-colors ${
               isSelected
-                ? "border-cyan-700 bg-cyan-50"
-                : "border-slate-200 bg-slate-50"
+                ? "border-accent bg-panel-raised"
+                : "border-subtle hover:border-strong"
             }`}
             key={result.site.cell_id}
           >
@@ -57,20 +55,20 @@ export function RankedSites({ isLoading, results }: RankedSitesProps) {
                 type="button"
                 onClick={() => setSelectedCellId(result.site.cell_id)}
               >
-                <strong className="block text-sm">
+                <strong className="block text-sm text-primary">
                   {index + 1}. {result.site.region_name}
                 </strong>
-                <span className="text-xs text-slate-600">
+                <span className="text-xs text-dim">
                   Score {formatPercent(result.composite_score)} ·{" "}
                   {formatMw(result.site.headroom_mw)} headroom ·{" "}
                   {formatCarbon(result.site.carbon_intensity_g_kwh)}
                 </span>
               </button>
               <button
-                className={`rounded border px-2 py-1 text-xs font-medium ${
+                className={`rounded-md border px-2 py-1 text-xs transition-colors ${
                   isCompared
-                    ? "border-cyan-700 bg-cyan-700 text-white"
-                    : "border-slate-300 bg-white text-slate-700"
+                    ? "border-accent bg-accent text-accent-contrast"
+                    : "border-subtle text-dim hover:border-strong hover:text-primary"
                 }`}
                 type="button"
                 onClick={() => toggleComparisonCell(result.site.cell_id)}
@@ -79,7 +77,7 @@ export function RankedSites({ isLoading, results }: RankedSitesProps) {
               </button>
             </span>
             {drivers ? (
-              <span className="mt-1 block text-xs text-slate-500">
+              <span className="mt-1 block text-xs text-faint">
                 Drivers: {drivers}
               </span>
             ) : null}

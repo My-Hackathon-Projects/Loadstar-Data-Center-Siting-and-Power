@@ -18,78 +18,75 @@ export function SiteDetailPanel() {
     .slice(0, 4);
 
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-4">
+    <section>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-base font-semibold">Site Detail</h2>
+          <p className="eyebrow">specifications</p>
+          <h2 className="mt-1 text-lg text-primary">Site detail</h2>
           {site ? (
-            <p className="mt-1 text-sm text-slate-600">
+            <p className="mt-1 text-sm text-dim">
               {site.region_name}, {site.country_code}
             </p>
           ) : null}
         </div>
         {query.isFetching ? (
-          <span className="rounded bg-slate-100 px-2 py-1 text-xs text-slate-500">
+          <span className="rounded-md border border-subtle px-2 py-1 text-xs text-dim">
             Updating
           </span>
         ) : null}
       </div>
       {!site ? (
-        <p className="mt-3 text-sm text-slate-500">Select a ranked site.</p>
+        <p className="mt-3 text-sm text-dim">Select a ranked site.</p>
       ) : (
-        <div className="mt-3 space-y-4">
+        <div className="mt-4 space-y-4">
           <div className="grid grid-cols-2 gap-2">
-            <Metric label="Cell" value={site.cell_id} />
-            <Metric label="Headroom" value={formatMw(site.headroom_mw)} />
+            <Metric label="cell" value={site.cell_id} />
+            <Metric label="headroom" value={formatMw(site.headroom_mw)} />
             <Metric
-              label="Price"
+              label="price"
               value={formatEurPerMwh(site.mean_price_eur_mwh)}
             />
             <Metric
-              label="Carbon"
+              label="carbon"
               value={formatCarbon(site.carbon_intensity_g_kwh)}
             />
             <Metric
-              label="Congestion"
+              label="congestion"
               value={site.congestion_index.toFixed(2)}
             />
             <Metric
-              label="Buildable"
+              label="buildable"
               value={formatPercent(site.buildable_fraction)}
             />
             <Metric
-              label="ML viability"
+              label="ml viability"
               value={formatPercent(site.lightgbm_score)}
             />
             <Metric
-              label="DC similarity"
+              label="dc similarity"
               value={formatPercent(site.dc_similarity)}
             />
             <Metric
-              label="Fiber distance"
+              label="fiber distance"
               value={formatDistanceKm(site.dist_fiber_km)}
             />
             <Metric
-              label="HV distance"
+              label="hv distance"
               value={formatDistanceKm(site.dist_hv_substation_km)}
             />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-slate-900">
-              Viability Drivers
-            </h3>
+            <p className="eyebrow">viability drivers</p>
             <div className="mt-2 grid gap-2">
               {shapEntries.map(([factor, value]) => (
                 <div
-                  className="flex items-center justify-between gap-3 rounded-md border border-slate-200 px-3 py-2 text-sm"
+                  className="flex items-center justify-between gap-3 rounded-lg border border-subtle px-3 py-2 text-sm"
                   key={factor}
                 >
-                  <span className="break-words text-slate-700">
+                  <span className="break-words text-dim">
                     {factor.replaceAll("_", " ")}
                   </span>
-                  <span
-                    className={value >= 0 ? "text-cyan-700" : "text-rose-700"}
-                  >
+                  <span className={value >= 0 ? "text-positive" : "text-danger"}>
                     {value >= 0 ? "+" : ""}
                     {value.toFixed(2)}
                   </span>

@@ -1,11 +1,12 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 
-import { explainSite } from "../api/agent";
+import { chatAgent, explainSite } from "../api/agent";
 import { getAssumptions } from "../api/assumptions";
 import { getLayer } from "../api/layers";
 import { optimizeSupplyMix } from "../api/optimization";
 import { compareSites, getSite, searchSites } from "../api/sites";
 import type {
+  AgentChatRequest,
   CompareRequest,
   ExplainRequest,
   OptimizeRequest,
@@ -55,8 +56,37 @@ export function useOptimizeSupplyMix() {
   });
 }
 
+/**
+ * Auto-running supply-mix optimization for the selected cell. Keyed on the cell
+ * and load inputs so the result is cached and refetched when the selection
+ * changes; this feeds the effective-cost and CFE-share stat cards (and the
+ * optimizer panel) without a manual trigger.
+ */
+export function useSupplyMix(
+  cellId: string | null,
+  loadMw: number,
+  loadProfile: OptimizeRequest["load_profile"],
+) {
+  return useQuery({
+    enabled: Boolean(cellId),
+    queryKey: ["optimize", "supply-mix", cellId, loadMw, loadProfile],
+    queryFn: () =>
+      optimizeSupplyMix({
+        cell_id: cellId ?? "",
+        load_mw: loadMw,
+        load_profile: loadProfile,
+      }),
+  });
+}
+
 export function useExplainSite() {
   return useMutation({
     mutationFn: (request: ExplainRequest) => explainSite(request),
+  });
+}
+
+export function useChatAgent() {
+  return useMutation({
+    mutationFn: (request: AgentChatRequest) => chatAgent(request),
   });
 }

@@ -14,30 +14,30 @@ export function AssumptionsPanel() {
   const optimizer = recordValue(assumptions, "optimizer");
 
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-4">
+    <section>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-base font-semibold">Assumptions</h2>
-          <p className="mt-1 text-sm text-slate-600">
-            {query.data?.data_mode ?? "fixture"} data mode
-          </p>
+          <p className="eyebrow">assumptions</p>
+          <h2 className="mt-1 text-lg text-primary">
+            {query.data?.data_mode ?? "fixture"} data
+          </h2>
         </div>
         {query.data?.cache_key ? (
-          <span className="rounded bg-slate-100 px-2 py-1 text-xs text-slate-500">
+          <span className="rounded-md border border-subtle px-2 py-1 text-xs text-dim">
             Cached
           </span>
         ) : null}
       </div>
       {query.isError ? (
-        <p className="mt-3 rounded-md border border-rose-300 bg-rose-50 p-3 text-sm text-rose-800">
+        <p className="mt-3 rounded-lg border border-danger p-3 text-sm text-danger">
           Assumptions could not be loaded.
         </p>
       ) : null}
       <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-        <AssumptionList title="Scoring Weights" values={weights} />
+        <AssumptionList title="scoring weights" values={weights} />
         <AssumptionList
           keys={IMPORTANT_OPTIMIZER_KEYS}
-          title="Optimizer Inputs"
+          title="optimizer inputs"
           values={optimizer}
         />
       </div>
@@ -58,17 +58,15 @@ function AssumptionList({ keys, title, values }: AssumptionListProps) {
 
   return (
     <div>
-      <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
+      <p className="eyebrow">{title}</p>
       <dl className="mt-2 grid gap-2">
         {entries.map(([key, value]) => (
           <div
-            className="flex items-center justify-between gap-3 rounded-md border border-slate-200 px-3 py-2 text-sm"
+            className="flex items-center justify-between gap-3 rounded-lg border border-subtle px-3 py-2 text-sm"
             key={key}
           >
-            <dt className="break-words text-slate-600">
-              {key.replaceAll("_", " ")}
-            </dt>
-            <dd className="shrink-0 font-medium text-slate-900">
+            <dt className="break-words text-dim">{key.replaceAll("_", " ")}</dt>
+            <dd className="shrink-0 font-medium text-primary">
               {formatUnknown(value)}
             </dd>
           </div>

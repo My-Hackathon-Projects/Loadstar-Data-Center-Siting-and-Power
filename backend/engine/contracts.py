@@ -289,3 +289,41 @@ class ExplainResponse(BaseModel):
     model: str | None = None
     message: str
     cache_key: str
+
+
+class AgentChatRequest(BaseModel):
+    """Payload for `POST /agent/chat`. Fred runs a real search from a free-text ask."""
+
+    message: str
+    power_mw: float = Field(gt=0)
+    workload_type: Literal["training", "inference", "mixed"] = "training"
+    selected_cell_id: str | None = None
+
+
+class AgentAction(BaseModel):
+    """Structured dashboard action the chat asks the UI to apply.
+
+    For a `search` action the UI writes `applied` into its store (which drives the
+    existing search query) and flies the map to `focus_cell_id`. `none` leaves the
+    dashboard untouched.
+    """
+
+    type: Literal["search", "none"] = "none"
+    search: SearchResponse | None = None
+    focus_cell_id: str | None = None
+    applied: SearchRequest | None = None
+
+
+class AgentChatResponse(BaseModel):
+    """Result of an agent chat turn.
+
+    The deterministic narration is the demo-safe default; a live LLM only
+    rephrases the reply around the same engine-computed numbers. `source` drives
+    the same "Live" vs "template" pill as the explain endpoint.
+    """
+
+    source: ExplainSource
+    model: str | None = None
+    message: str
+    action: AgentAction
+    cache_key: str = ""

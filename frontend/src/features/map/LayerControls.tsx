@@ -6,13 +6,13 @@ export function LayerControls() {
   const setActiveLayer = useUiStore((state) => state.setActiveLayer);
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-1.5">
       {MAP_LAYER_OPTIONS.map((option) => (
         <button
-          className={`rounded border px-3 py-1.5 text-xs font-medium ${
+          className={`rounded-md border px-2.5 py-1 text-xs transition-colors ${
             activeLayer === option.name
-              ? "border-cyan-700 bg-cyan-700 text-white"
-              : "border-slate-300 bg-white text-slate-700 hover:border-cyan-700"
+              ? "border-accent bg-accent text-accent-contrast"
+              : "border-subtle text-dim hover:border-strong hover:text-primary"
           }`}
           key={option.name}
           title={option.label}

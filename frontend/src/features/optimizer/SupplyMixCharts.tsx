@@ -9,8 +9,18 @@ import {
   YAxis,
 } from "recharts";
 
+import { CHART_SERIES, COLOR } from "../../styles/tokens";
 import type { ParetoPoint } from "../../types/api";
 import type { DispatchChartRow } from "./optimizerCharts";
+
+const AXIS_TICK = { fontSize: 12, fill: COLOR.textDim } as const;
+const TOOLTIP_CONTENT = {
+  background: COLOR.bgPanel,
+  border: `1px solid ${COLOR.borderSubtle}`,
+  borderRadius: 8,
+  color: COLOR.textPrimary,
+} as const;
+const LEGEND_STYLE = { color: COLOR.textDim, fontSize: 12 } as const;
 
 interface ParetoChartProps {
   points: ParetoPoint[];
@@ -18,30 +28,41 @@ interface ParetoChartProps {
 
 export function ParetoChart({ points }: ParetoChartProps) {
   return (
-    <div className="mt-3 h-56 rounded-md border border-slate-200 p-2">
+    <div className="mt-3 h-56 rounded-lg border border-subtle p-2">
       <ResponsiveContainer height="100%" width="100%">
         <LineChart
           data={points}
           margin={{ bottom: 16, left: 8, right: 18, top: 12 }}
         >
-          <CartesianGrid stroke="#e2e8f0" strokeDasharray="4 4" />
+          <CartesianGrid stroke={COLOR.borderSubtle} strokeDasharray="4 4" />
           <XAxis
             dataKey="effective_carbon_g_kwh"
-            label={{ position: "insideBottom", value: "Carbon gCO2/kWh" }}
-            tick={{ fontSize: 12 }}
+            label={{
+              fill: COLOR.textDim,
+              position: "insideBottom",
+              value: "Carbon gCO2/kWh",
+            }}
+            stroke={COLOR.textDim}
+            tick={AXIS_TICK}
           />
           <YAxis
             dataKey="effective_cost_eur_mwh"
-            label={{ angle: -90, position: "insideLeft", value: "EUR/MWh" }}
-            tick={{ fontSize: 12 }}
+            label={{
+              angle: -90,
+              fill: COLOR.textDim,
+              position: "insideLeft",
+              value: "EUR/MWh",
+            }}
+            stroke={COLOR.textDim}
+            tick={AXIS_TICK}
             width={52}
           />
-          <Tooltip />
+          <Tooltip contentStyle={TOOLTIP_CONTENT} />
           <Line
             dataKey="effective_cost_eur_mwh"
-            dot={{ r: 3 }}
+            dot={{ fill: COLOR.accent, r: 3 }}
             name="Cost"
-            stroke="#0e7490"
+            stroke={COLOR.accent}
             strokeWidth={3}
             type="monotone"
           />
@@ -57,54 +78,59 @@ interface DispatchChartProps {
 
 export function DispatchChart({ rows }: DispatchChartProps) {
   return (
-    <div className="mt-3 h-56 rounded-md border border-slate-200 p-2">
+    <div className="mt-3 h-56 rounded-lg border border-subtle p-2">
       <ResponsiveContainer height="100%" width="100%">
         <LineChart
           data={rows}
           margin={{ bottom: 16, left: 8, right: 18, top: 12 }}
         >
-          <CartesianGrid stroke="#e2e8f0" strokeDasharray="4 4" />
+          <CartesianGrid stroke={COLOR.borderSubtle} strokeDasharray="4 4" />
           <XAxis
             dataKey="hour"
-            label={{ position: "insideBottom", value: "Hour" }}
-            tick={{ fontSize: 12 }}
+            label={{
+              fill: COLOR.textDim,
+              position: "insideBottom",
+              value: "Hour",
+            }}
+            stroke={COLOR.textDim}
+            tick={AXIS_TICK}
           />
-          <YAxis tick={{ fontSize: 12 }} width={52} />
-          <Tooltip />
-          <Legend verticalAlign="top" />
+          <YAxis stroke={COLOR.textDim} tick={AXIS_TICK} width={52} />
+          <Tooltip contentStyle={TOOLTIP_CONTENT} />
+          <Legend verticalAlign="top" wrapperStyle={LEGEND_STYLE} />
           <Line
             dataKey="load"
             dot={false}
             name="Load"
-            stroke="#111827"
+            stroke={CHART_SERIES.load}
             strokeWidth={2}
           />
           <Line
             dataKey="grid"
             dot={false}
             name="Grid"
-            stroke="#64748b"
+            stroke={CHART_SERIES.grid}
             strokeWidth={2}
           />
           <Line
             dataKey="clean"
             dot={false}
             name="Clean"
-            stroke="#15803d"
+            stroke={CHART_SERIES.clean}
             strokeWidth={2}
           />
           <Line
             dataKey="battery"
             dot={false}
             name="Battery"
-            stroke="#c2410c"
+            stroke={CHART_SERIES.battery}
             strokeWidth={2}
           />
           <Line
             dataKey="backup"
             dot={false}
             name="Backup"
-            stroke="#be123c"
+            stroke={CHART_SERIES.backup}
             strokeWidth={2}
           />
         </LineChart>

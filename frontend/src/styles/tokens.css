@@ -1,0 +1,62 @@
+/*
+ * Loadstar design tokens.
+ *
+ * This file and styles/tokens.ts are the ONLY places raw color literals may
+ * live. Every component references these through the Tailwind semantic classes
+ * (bg-void, bg-panel, text-primary, text-dim, text-accent, ...) or imports
+ * tokens.ts for canvas, Deck.GL, Recharts, and MapLibre contexts. Keep the two
+ * files in sync.
+ *
+ * Aesthetic: cinematic, dark, precise. Mission control built by a film
+ * director. One warm accent, used only for Fred, primary actions, and the
+ * selected site. Restraint everywhere.
+ */
+
+/* Self-hosted Inter variable font (public/fonts/Inter-Variable.woff2). */
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/Inter-Variable.woff2") format("woff2");
+}
+
+:root {
+  /* Surfaces. --bg-void is a very dark blue, never pure black, so the screen
+     stays alive. --bg-panel is a slightly lifted surface for cards and bars. */
+  --bg-void: #070b14;
+  --bg-panel: #0e1422;
+  --bg-panel-raised: #131b2c;
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
+
+  /* Text. --text-primary is near-white; --text-dim is low-opacity white for
+     labels and lowercase eyebrows. */
+  --text-primary: #eaeef6;
+  --text-dim: rgba(234, 238, 246, 0.55);
+  --text-faint: rgba(234, 238, 246, 0.32);
+
+  /* One warm accent (ember/amber). Fred's presence, primary actions, the
+     selected site. Never decorative. */
+  --accent: #f4a14e;
+  --accent-strong: #f6b069;
+  --accent-contrast: #1a1206;
+
+  /* Muted deltas and scale-band warnings. Never neon. */
+  --positive: #5fae87;
+  --warning: #d8a13f;
+  --danger: #d9614f;
+
+  /* Map data ramps, recolored to harmonize against the dark basemap. Shared by
+     the semantic layers (price, carbon, congestion, ...), low -> high. */
+  --ramp-low: #d85c48;
+  --ramp-mid: #e0a84e;
+  --ramp-high: #3eb296;
+
+  /* Backdrop scrim behind the detail drawer. */
+  --scrim: rgba(5, 8, 14, 0.74);
+
+  /* The /thanks outro deliberately breaks the language: calm near-white. */
+  --thanks-bg: #f4f3ef;
+  --thanks-text: #1d1f24;
+}

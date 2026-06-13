@@ -121,7 +121,7 @@ async def _try_openai(
         )
         return None
 
-    text = _extract_response_text(response)
+    text = extract_response_text(response)
     if not text:
         logger.warning(
             "llm.empty_response",
@@ -131,7 +131,7 @@ async def _try_openai(
     return text
 
 
-def _extract_response_text(response: Any) -> str | None:
+def extract_response_text(response: Any) -> str | None:
     """Pull the assistant message out of the Responses API payload.
 
     The 1.x SDK exposes a convenience `output_text` attribute; we still walk

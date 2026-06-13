@@ -1,13 +1,14 @@
-import type { PickingInfo } from "@deck.gl/core";
+import { FlyToInterpolator, type PickingInfo } from "@deck.gl/core";
 import { H3HexagonLayer } from "@deck.gl/geo-layers";
 import DeckGL from "@deck.gl/react";
-import type { StyleSpecification } from "maplibre-gl";
-import { useMemo } from "react";
-import Map from "react-map-gl/maplibre";
+import { useEffect, useMemo, useRef, useState } from "react";
+import MapGL from "react-map-gl/maplibre";
 
+import { useSearchRequest } from "../../hooks/useSearchRequest";
 import { useUiStore } from "../../hooks/useUiStore";
 import { useLayer, useSearchSites } from "../../lib/queries";
-import { LayerControls } from "./LayerControls";
+import { COLOR, MAP_RGB } from "../../styles/tokens";
+import { darkBasemapStyle } from "./darkBasemap";
 import {
   buildLayerCells,
   formatLayerValue,
@@ -16,21 +17,20 @@ import {
   type LayerCell,
 } from "./mapLayers";
 
-const MAP_STYLE: StyleSpecification = {
-  layers: [
-    {
-      id: "background",
-      paint: {
-        "background-color": "#eef5f8",
-      },
-      type: "background",
-    },
-  ],
-  sources: {},
-  version: 8,
-};
+const MAP_STYLE = darkBasemapStyle();
 
-const INITIAL_VIEW_STATE = {
+interface MapViewState {
+  latitude: number;
+  longitude: number;
+  zoom: number;
+  pitch: number;
+  minZoom: number;
+  maxZoom: number;
+  transitionDuration?: number;
+  transitionInterpolator?: FlyToInterpolator;
+}
+
+const INITIAL_VIEW_STATE: MapViewState = {
   latitude: 57.4,
   longitude: 8.5,
   maxZoom: 8,
@@ -39,18 +39,15 @@ const INITIAL_VIEW_STATE = {
   zoom: 3.15,
 };
 
+const SELECTED_LINE: [number, number, number, number] = [...MAP_RGB.accent, 255];
+const UNSELECTED_LINE: [number, number, number, number] = [...MAP_RGB.white, 60];
+const HIGHLIGHT: [number, number, number, number] = [...MAP_RGB.highlight, 90];
+
 export function SiteMap() {
   const activeLayer = useUiStore((state) => state.activeLayer);
-  const powerMw = useUiStore((state) => state.powerMw);
   const selectedCellId = useUiStore((state) => state.selectedCellId);
   const setSelectedCellId = useUiStore((state) => state.setSelectedCellId);
-  const topK = useUiStore((state) => state.topK);
-  const workloadType = useUiStore((state) => state.workloadType);
-  const searchQuery = useSearchSites({
-    power_mw: powerMw,
-    top_k: topK,
-    workload_type: workloadType,
-  });
+  const searchQuery = useSearchSites(useSearchRequest());
   const layerQuery = useLayer(activeLayer);
   const rankedResults = useMemo(
     () => searchQuery.data?.results ?? [],
@@ -60,7 +57,38 @@ export function SiteMap() {
     () => buildLayerCells(activeLayer, layerQuery.data, rankedResults),
     [activeLayer, layerQuery.data, rankedResults],
   );
+  const cellCoords = useMemo(() => {
+    const map = new Map<string, [number, number]>();
+    for (const cell of cells) {
+      map.set(cell.cellId, [cell.longitude, cell.latitude]);
+    }
+    return map;
+  }, [cells]);
   const activeLayerOption = layerOption(activeLayer);
+
+  const [viewState, setViewState] = useState<MapViewState>(INITIAL_VIEW_STATE);
+  // Reuse one interpolator instance so re-renders do not restart the transition.
+  const flyTo = useRef(new FlyToInterpolator({ speed: 1.3 }));
+
+  // Fly to the selected cell (e.g. Fred's top candidate) whenever it changes.
+  useEffect(() => {
+    if (!selectedCellId) {
+      return;
+    }
+    const coords = cellCoords.get(selectedCellId);
+    if (!coords) {
+      return;
+    }
+    setViewState((current) => ({
+      ...current,
+      longitude: coords[0],
+      latitude: coords[1],
+      zoom: Math.max(current.zoom, 4.6),
+      transitionDuration: 1500,
+      transitionInterpolator: flyTo.current,
+    }));
+  }, [selectedCellId, cellCoords]);
+
   const deckLayers = useMemo(
     () => [
       new H3HexagonLayer<LayerCell>({
@@ -72,15 +100,17 @@ export function SiteMap() {
           layerFillColor(activeLayer, cell.value, cell.isRanked),
         getHexagon: (cell) => cell.hexagon,
         getLineColor: (cell) =>
-          cell.cellId === selectedCellId
-            ? [14, 116, 144, 255]
-            : [255, 255, 255, 170],
+          cell.cellId === selectedCellId ? SELECTED_LINE : UNSELECTED_LINE,
         getLineWidth: (cell) => (cell.cellId === selectedCellId ? 3 : 1),
-        highlightColor: [17, 94, 89, 90],
+        highlightColor: HIGHLIGHT,
         id: `h3-${activeLayer}`,
         lineWidthMinPixels: 1,
         pickable: true,
         stroked: true,
+        updateTriggers: {
+          getLineColor: selectedCellId,
+          getLineWidth: selectedCellId,
+        },
         onClick: (info: PickingInfo<LayerCell>) => {
           if (info.object) {
             setSelectedCellId(info.object.cellId);
@@ -92,7 +122,7 @@ export function SiteMap() {
   );
 
   return (
-    <section className="relative min-h-[520px] overflow-hidden rounded-lg border border-slate-200 bg-slate-100 lg:min-h-[680px]">
+    <section className="relative h-full min-h-[420px] overflow-hidden rounded-2xl border border-subtle bg-void">
       <DeckGL
         controller
         getTooltip={({ object }: PickingInfo<LayerCell>) =>
@@ -103,38 +133,37 @@ export function SiteMap() {
               )}${object.score === null ? "" : `\nScore: ${formatLayerValue("composite_score", object.score)}`}`
             : null
         }
-        initialViewState={INITIAL_VIEW_STATE}
         layers={deckLayers}
+        onViewStateChange={({ viewState: next }) =>
+          setViewState(next as MapViewState)
+        }
+        viewState={viewState}
       >
-        <Map
+        <MapGL
           attributionControl={false}
-          initialViewState={INITIAL_VIEW_STATE}
           interactive={false}
           mapStyle={MAP_STYLE}
           reuseMaps
         />
       </DeckGL>
 
-      <div className="pointer-events-none absolute inset-x-3 top-3 z-10 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="pointer-events-auto rounded-lg border border-slate-200 bg-white/95 p-3 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-normal text-slate-500">
-            Map Layer
-          </p>
-          <div className="mt-2">
-            <LayerControls />
-          </div>
-        </div>
-        <div className="pointer-events-auto w-full max-w-xs rounded-lg border border-slate-200 bg-white/95 p-3 text-sm shadow-sm">
+      <div className="pointer-events-none absolute right-3 top-3 z-10 flex justify-end">
+        <div className="pointer-events-auto w-full max-w-xs rounded-xl border border-subtle bg-panel p-3 text-sm">
           <div className="flex items-center justify-between gap-3">
-            <span className="font-medium text-slate-900">
+            <span className="font-medium text-primary">
               {activeLayerOption.label}
             </span>
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-dim">
               {searchQuery.data?.results.length ?? 0} ranked
             </span>
           </div>
-          <div className="mt-2 h-2 rounded-full bg-gradient-to-r from-[#e05840] via-[#f1b24a] to-[#177e76]" />
-          <div className="mt-1 flex justify-between text-xs text-slate-500">
+          <div
+            className="mt-2 h-2 rounded-full"
+            style={{
+              backgroundImage: `linear-gradient(to right, ${COLOR.rampLow}, ${COLOR.rampMid}, ${COLOR.rampHigh})`,
+            }}
+          />
+          <div className="mt-1 flex justify-between text-xs text-dim">
             <span>Weaker</span>
             <span>Stronger</span>
           </div>
@@ -142,12 +171,12 @@ export function SiteMap() {
       </div>
 
       {searchQuery.isLoading || layerQuery.isLoading ? (
-        <div className="absolute inset-x-3 bottom-3 z-10 rounded-md border border-slate-200 bg-white/95 p-3 text-sm text-slate-600 shadow-sm">
+        <div className="absolute inset-x-3 bottom-3 z-10 rounded-lg border border-subtle bg-panel p-3 text-sm text-dim">
           Loading map layers...
         </div>
       ) : null}
       {searchQuery.isError || layerQuery.isError ? (
-        <div className="absolute inset-x-3 bottom-3 z-10 rounded-md border border-rose-300 bg-rose-50 p-3 text-sm text-rose-800 shadow-sm">
+        <div className="absolute inset-x-3 bottom-3 z-10 rounded-lg border border-danger bg-panel p-3 text-sm text-danger">
           Map data could not be loaded.
         </div>
       ) : null}
