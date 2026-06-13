@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { FormEvent, KeyboardEvent } from "react";
+import ReactMarkdown from "react-markdown";
+import type { Components } from "react-markdown";
 
 import { useUiStore } from "../../hooks/useUiStore";
 import {
