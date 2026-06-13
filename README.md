@@ -562,4 +562,11 @@ The access-check tool (`python3 -m backend.pipeline.access_check --write public/
 
 ---
 
+---
+
+## Authors
+
+- Rishabh Tiwari - rishtiwari98@gmail.com
+- Vinayak Joshi - vinayakjoshi2001@gmail.com
+
 *Built for the Invertix Data-Center Siting & Power challenge. Deterministic, demo-safe, and honest about its fallbacks.*
