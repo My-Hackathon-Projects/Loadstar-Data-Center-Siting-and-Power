@@ -179,6 +179,13 @@ _FRED_SYSTEM_PROMPT = (
     "comparison across sites. Never describe siting numbers from memory.\n"
     "- explain_site: call when the user asks for details, tradeoffs, or risk "
     "on a specific cell and a selected_cell_id is available.\n\n"
+    "Multi-turn refinement (CRITICAL): when the user replies with a short "
+    "follow-up (a single country name, 'what about Germany?', 'try 100 MW', "
+    "'cheaper instead', etc.), treat it as a REFINEMENT of the most recent "
+    "search you ran in this conversation. Reuse the prior power_mw, "
+    "workload_type, and emphasis values unless the user explicitly changes "
+    "them, and only override the dimensions the user actually mentioned. Do "
+    "not silently fall back to defaults across turns.\n\n"
     "Numeric faithfulness: any price, carbon intensity, headroom, or score "
     "in your reply MUST come verbatim from a tool result you saw in this "
     "turn. If you have no tool result, do NOT invent numbers — ask a "
@@ -597,14 +604,27 @@ def _summarize_search_for_tool(
 
 
 def _build_llm_input(payload: AgentChatRequest) -> list[dict[str, Any]]:
-    """Convert prior history + the new user message into Responses-API input."""
+    """Convert prior history + the new user message into Responses-API input.
+
+    The Responses API enforces different content-type tags by speaker: user
+    turns use ``input_text``; assistant turns must use ``output_text`` (or
+    ``refusal``). Mixing them up returns ``invalid_request_error`` and the
+    whole agent call fails — which silently regressed multi-turn chat to the
+    deterministic template path. Tag content blocks accordingly.
+    """
 
     items: list[dict[str, Any]] = []
     for turn in payload.history[-8:]:
+        is_assistant = turn.speaker == "assistant"
         items.append(
             {
-                "role": "assistant" if turn.speaker == "assistant" else "user",
-                "content": [{"type": "input_text", "text": turn.body}],
+                "role": "assistant" if is_assistant else "user",
+                "content": [
+                    {
+                        "type": "output_text" if is_assistant else "input_text",
+                        "text": turn.body,
+                    }
+                ],
             }
         )
     items.append(
