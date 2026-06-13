@@ -56,7 +56,7 @@ ROOT_DIR = Path(__file__).resolve().parents[2]
 
 RAW_DIR_DEFAULT = ROOT_DIR / "data" / "raw" / "pypsa_eur"
 DB_DEFAULT = ROOT_DIR / "data" / "pypsa_network.db"
-GEOJSON_DEFAULT = ROOT_DIR / "frontend" / "public" / "layers" / "transmission_grid.geojson"
+GEOJSON_DEFAULT = ROOT_DIR / "frontend" / "public" / "layers" / "transmission_grid.json"
 SITE_FEATURES_DEFAULT = ROOT_DIR / "data" / "processed" / "subset" / "site_features_subset.json"
 METADATA_DB_DEFAULT = ROOT_DIR / "data" / "processed" / "source_artifacts.db"
 

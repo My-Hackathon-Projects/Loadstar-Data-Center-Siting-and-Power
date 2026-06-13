@@ -46,7 +46,12 @@ export interface GridGeoJson {
   features: Feature<Geometry, GridFeatureProperties>[];
 }
 
-const GRID_GEOJSON_PATH = "/layers/transmission_grid.geojson";
+// Served as `.json` rather than `.geojson` so the Vite dev-proxy bypass
+// (which only matches `.json`) and the production FastAPI static-layer
+// route (which only handles `*.json`) both serve it without a special
+// case. Content is still a GeoJSON FeatureCollection -- deck.gl does
+// not care about the URL extension.
+const GRID_GEOJSON_PATH = "/layers/transmission_grid.json";
 
 async function fetchGridGeoJson(): Promise<GridGeoJson | null> {
   const url = `${API_BASE_URL}${GRID_GEOJSON_PATH}`;

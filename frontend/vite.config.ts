@@ -16,12 +16,13 @@ export default defineConfig({
       "/agent": API_TARGET,
       "/assumptions": API_TARGET,
       "/health": API_TARGET,
-      // Pre-computed overlays live under public/layers/*.json. In production
-      // (no proxy) Vite serves them as static assets and the SPA prefers them.
-      // In dev the proxy would otherwise shadow them and 404 against the live
-      // API, which only exposes the extension-less `/layers/{name}` route. The
-      // bypass returns the request path for `.json` so Vite serves the static
-      // file; everything else proxies to the live API.
+      // Pre-computed overlays live under public/layers/*.json. The
+      // PyPSA-Eur transmission grid uses the same `.json` extension on
+      // purpose -- deck.gl does not care, and one bypass rule covers
+      // every static layer file. In production (no proxy) Vite serves
+      // them as static assets and the SPA prefers them. In dev the proxy
+      // would otherwise shadow them and 404 against the live API, which
+      // only exposes the extension-less `/layers/{name}` route.
       "/layers": {
         target: API_TARGET,
         bypass(req) {

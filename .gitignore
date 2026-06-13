@@ -27,3 +27,8 @@ frontend/playwright-report/
 # local. Each developer runs `python3 ember/ingest.py` once on their machine.
 ember/dataset/
 ember/__pycache__/
+
+# PyPSA-Eur raw CSVs (~21 MB) live locally only. Each developer fetches from
+# Zenodo record 18619025 and runs `python3 -m backend.pipeline.pypsa_network`
+# to regenerate the SQLite DB and the static transmission_grid.json overlay.
+data/raw/
