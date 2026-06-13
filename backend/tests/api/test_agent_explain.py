@@ -41,7 +41,7 @@ def _payload() -> dict[str, object]:
 def test_agent_explain_returns_template_when_llm_disabled(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.delenv("LOADSTAR_LLM_ENABLED", raising=False)
+    monkeypatch.setenv("LOADSTAR_LLM_ENABLED", "false")
     client = TestClient(app)
     response = client.post("/agent/explain", json=_payload())
     assert response.status_code == 200

@@ -52,7 +52,7 @@ def _post(client: TestClient, message: str, **overrides: object) -> dict[str, An
 def test_chat_runs_real_search_and_returns_focus_cell(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.delenv("LOADSTAR_LLM_ENABLED", raising=False)
+    monkeypatch.setenv("LOADSTAR_LLM_ENABLED", "false")
     client = TestClient(app)
 
     body = _post(client, "where are the best sites for training?")
@@ -72,7 +72,7 @@ def test_chat_runs_real_search_and_returns_focus_cell(
 def test_chat_country_filter_narrows_results(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.delenv("LOADSTAR_LLM_ENABLED", raising=False)
+    monkeypatch.setenv("LOADSTAR_LLM_ENABLED", "false")
     client = TestClient(app)
 
     body = _post(client, "find the cheapest site in Sweden")
@@ -90,7 +90,7 @@ def test_chat_country_filter_narrows_results(
 def test_chat_energy_manager_prompt_runs_germany_search(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.delenv("LOADSTAR_LLM_ENABLED", raising=False)
+    monkeypatch.setenv("LOADSTAR_LLM_ENABLED", "false")
     client = TestClient(app)
 
     body = _post(
@@ -108,7 +108,7 @@ def test_chat_energy_manager_prompt_runs_germany_search(
 def test_chat_greeting_waits_without_dashboard_action(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.delenv("LOADSTAR_LLM_ENABLED", raising=False)
+    monkeypatch.setenv("LOADSTAR_LLM_ENABLED", "false")
     client = TestClient(app)
 
     body = _post(client, "hello fred")
@@ -123,7 +123,7 @@ def test_chat_greeting_waits_without_dashboard_action(
 def test_chat_detail_follow_up_explains_selected_site(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.delenv("LOADSTAR_LLM_ENABLED", raising=False)
+    monkeypatch.setenv("LOADSTAR_LLM_ENABLED", "false")
     client = TestClient(app)
     first_search = _post(client, "find sites in Sweden")
     selected_cell_id = first_search["action"]["focus_cell_id"]
@@ -139,7 +139,7 @@ def test_chat_detail_follow_up_explains_selected_site(
 def test_chat_mw_override_can_empty_results(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.delenv("LOADSTAR_LLM_ENABLED", raising=False)
+    monkeypatch.setenv("LOADSTAR_LLM_ENABLED", "false")
     client = TestClient(app)
 
     body = _post(client, "need a 99999 MW campus")

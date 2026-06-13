@@ -26,6 +26,52 @@ const INTRO: ChatMessage = {
   speaker: "assistant",
 };
 
+/**
+ * Markdown renderer map for assistant chat bubbles. The LLM emits
+ * `**bold**`, numbered lists, and bullets, which previously rendered as raw
+ * asterisks and dashes. We render them as real elements but keep the look
+ * tight: small text, restrained list indents, no extra vertical space at the
+ * bubble edges so the bubble does not balloon. `react-markdown` disables raw
+ * HTML by default, so user-controlled content stays sandboxed.
+ */
+const ASSISTANT_MARKDOWN_COMPONENTS: Components = {
+  p: ({ children }) => (
+    <p className="mb-2 last:mb-0 whitespace-pre-wrap leading-relaxed">
+      {children}
+    </p>
+  ),
+  strong: ({ children }) => (
+    <strong className="font-semibold text-primary">{children}</strong>
+  ),
+  em: ({ children }) => <em className="italic">{children}</em>,
+  ul: ({ children }) => (
+    <ul className="mb-2 ml-4 list-disc space-y-0.5 last:mb-0">{children}</ul>
+  ),
+  ol: ({ children }) => (
+    <ol className="mb-2 ml-4 list-decimal space-y-0.5 last:mb-0">{children}</ol>
+  ),
+  li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+  code: ({ children }) => (
+    <code className="rounded bg-void px-1 py-0.5 font-mono text-[0.8em] text-primary">
+      {children}
+    </code>
+  ),
+  a: ({ href, children }) => (
+    <a
+      className="text-accent underline-offset-2 hover:underline"
+      href={href}
+      rel="noreferrer noopener"
+      target="_blank"
+    >
+      {children}
+    </a>
+  ),
+  h1: ({ children }) => <p className="mb-2 font-semibold text-primary">{children}</p>,
+  h2: ({ children }) => <p className="mb-2 font-semibold text-primary">{children}</p>,
+  h3: ({ children }) => <p className="mb-2 font-semibold text-primary">{children}</p>,
+  hr: () => <hr className="my-2 border-subtle" />,
+};
+
 type AgentChatHistory = NonNullable<AgentChatRequest["history"]>;
 
 function toAgentHistory(messages: ChatMessage[]): AgentChatHistory {
@@ -219,23 +265,34 @@ export function FredPanel() {
       </div>
 
       <div className="mt-3 flex-1 space-y-2 overflow-y-auto pr-1" ref={listRef}>
-        {messages.map((message, index) => (
-          <div
-            className={`rounded-xl px-3 py-2 text-sm ${
-              message.speaker === "assistant"
-                ? "bg-panel-raised text-primary"
-                : "border border-subtle text-dim"
-            }`}
-            key={`${message.speaker}-${index}`}
-          >
-            {message.speaker === "assistant" && message.source ? (
-              <span className="mr-2 inline-flex rounded-full border border-subtle px-2 py-0.5 text-[0.625rem] uppercase tracking-wide text-dim">
-                {sourceLabel(message.source, message.model)}
-              </span>
-            ) : null}
-            <span className="whitespace-pre-wrap">{message.body}</span>
-          </div>
-        ))}
+        {messages.map((message, index) => {
+          const isAssistant = message.speaker === "assistant";
+          return (
+            <div
+              className={`rounded-xl px-3 py-2 text-sm ${
+                isAssistant
+                  ? "bg-panel-raised text-primary"
+                  : "border border-subtle text-dim"
+              }`}
+              key={`${message.speaker}-${index}`}
+            >
+              {isAssistant && message.source ? (
+                <p className="mb-2">
+                  <span className="inline-flex rounded-full border border-subtle px-2 py-0.5 text-[0.625rem] uppercase tracking-wide text-dim">
+                    {sourceLabel(message.source, message.model)}
+                  </span>
+                </p>
+              ) : null}
+              {isAssistant ? (
+                <ReactMarkdown components={ASSISTANT_MARKDOWN_COMPONENTS}>
+                  {message.body}
+                </ReactMarkdown>
+              ) : (
+                <span className="whitespace-pre-wrap">{message.body}</span>
+              )}
+            </div>
+          );
+        })}
         {chat.isPending ? (
           <p className="px-3 py-2 text-sm text-dim">Fred is thinking...</p>
         ) : null}

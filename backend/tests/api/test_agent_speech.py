@@ -36,7 +36,10 @@ def test_speech_uses_configured_elevenlabs_voice(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("ELEVENLABS_API_KEY", "test-key")
-    monkeypatch.delenv("ELEVENLABS_VOICE_ID", raising=False)
+    # Explicitly override the canonical name so a populated .env does not
+    # leak through. The typo alias `ELEVEBLABS_VOICE_ID` is also exercised
+    # below because pydantic-settings accepts both.
+    monkeypatch.setenv("ELEVENLABS_VOICE_ID", "fred-voice")
     monkeypatch.setenv("ELEVEBLABS_VOICE_ID", "fred-voice")
     monkeypatch.setenv("ELEVENLABS_MODEL", "eleven_multilingual_v2")
     get_settings.cache_clear()
