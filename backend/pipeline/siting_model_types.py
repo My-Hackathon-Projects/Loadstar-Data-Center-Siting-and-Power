@@ -43,10 +43,10 @@ FEATURE_COLUMNS = (
 
 CURATED_KNOWN_DC_CELLS = frozenset(
     {
-        "851f25d7fffffff",  # Lulea / Boden
-        "851f2a6bfffffff",  # Stockholm North
-        "851fa62bfffffff",  # Frankfurt West
-        "85195da7fffffff",  # Dublin West
+        "8508c683fffffff",  # Lulea / Boden
+        "85088667fffffff",  # Stockholm North
+        "851faeabfffffff",  # Frankfurt West
+        "85182c17fffffff",  # Dublin West
     }
 )
 

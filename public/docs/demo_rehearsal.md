@@ -94,7 +94,7 @@ file is the time-boxed walkthrough plus rehearsal log appendix.
     ```bash
     JOB=$(curl -fsS -X POST http://127.0.0.1:8000/optimize/supply-mix/async \
         -H 'content-type: application/json' \
-        -d '{"cell_id":"851f25d7fffffff","load_mw":280,"load_profile":"flat_24_7"}' \
+        -d '{"cell_id":"8508c683fffffff","load_mw":280,"load_profile":"flat_24_7"}' \
         | jq -r '.job_id')
     sleep 1
     curl -fsS "http://127.0.0.1:8000/optimize/jobs/$JOB" | jq '.status, .solve_ms'
@@ -114,7 +114,7 @@ curl -fsS -X POST http://127.0.0.1:8000/sites/search \
     -d '{"power_mw":280,"workload_type":"training","top_k":3}' | jq '.results[0].site.region_name'
 curl -fsS -X POST http://127.0.0.1:8000/optimize/supply-mix \
     -H 'content-type: application/json' \
-    -d '{"cell_id":"851f25d7fffffff","load_mw":280,"load_profile":"flat_24_7"}' | jq '.solver_status, .pareto_frontier | length'
+    -d '{"cell_id":"8508c683fffffff","load_mw":280,"load_profile":"flat_24_7"}' | jq '.solver_status, .pareto_frontier | length'
 ```
 
 Expected outputs:

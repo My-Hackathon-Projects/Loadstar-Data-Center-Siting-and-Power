@@ -206,15 +206,19 @@ def eligible_sites(
     ]
 
 
-def search_sites(
+def rank_sites(
     request: SearchRequest,
     sites: Sequence[SiteFeature] | None = None,
-) -> SearchResponse:
-    """Rank fixture sites using transparent normalized feature scoring."""
+) -> list[RankedSite]:
+    """Return every eligible site ranked best-first, ignoring `top_k`.
+
+    `top_k` is a presentation cap on the search endpoint; callers that need the
+    full ranking (such as the composite-score map layer) use this directly so
+    they are not bound by the request validator.
+    """
 
     candidates = eligible_sites(request, sites)
-
-    ranked = sorted(
+    return sorted(
         (_score_site(site, candidates, request) for site in candidates),
         key=lambda result: (
             -result.composite_score,
@@ -223,6 +227,14 @@ def search_sites(
         ),
     )
 
+
+def search_sites(
+    request: SearchRequest,
+    sites: Sequence[SiteFeature] | None = None,
+) -> SearchResponse:
+    """Rank sites using transparent normalized feature scoring, capped at `top_k`."""
+
+    ranked = rank_sites(request, sites)
     return SearchResponse(
         requested_power_mw=request.power_mw,
         workload_type=request.workload_type,

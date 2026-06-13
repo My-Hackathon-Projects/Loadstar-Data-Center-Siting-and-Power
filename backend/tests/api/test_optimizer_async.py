@@ -57,7 +57,7 @@ def client_with_db(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
 
 
 def _payload() -> dict[str, object]:
-    return {"cell_id": "851f25d7fffffff", "load_mw": 280, "load_profile": "flat_24_7"}
+    return {"cell_id": "8508c683fffffff", "load_mw": 280, "load_profile": "flat_24_7"}
 
 
 def test_async_endpoint_runs_solve_and_polls_to_completed(client_with_db: TestClient) -> None:
@@ -113,7 +113,7 @@ def test_optimizer_job_status_404_on_unknown_id(client_with_db: TestClient) -> N
 def test_async_endpoint_validates_payload_shape(client_with_db: TestClient) -> None:
     response = client_with_db.post(
         "/optimize/supply-mix/async",
-        json={"cell_id": "851f25d7fffffff", "load_mw": -1, "load_profile": "flat_24_7"},
+        json={"cell_id": "8508c683fffffff", "load_mw": -1, "load_profile": "flat_24_7"},
     )
     assert response.status_code == 422
 

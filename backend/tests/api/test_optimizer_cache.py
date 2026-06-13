@@ -35,7 +35,7 @@ def test_lru_cache_hits_on_repeated_optimize(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     payload = {
-        "cell_id": "851f25d7fffffff",
+        "cell_id": "8508c683fffffff",
         "load_mw": 280,
         "load_profile": "flat_24_7",
     }

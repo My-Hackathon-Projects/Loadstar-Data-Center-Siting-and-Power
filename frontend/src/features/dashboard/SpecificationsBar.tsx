@@ -148,7 +148,7 @@ export function SpecificationsBar({ open, onToggle }: SpecificationsBarProps) {
 
       <div className="mt-4">
         <p className="eyebrow">filters</p>
-        <div className="mt-2 flex flex-wrap gap-1.5">
+        <div className="mt-2 flex max-h-44 flex-wrap gap-1.5 overflow-y-auto pr-1">
           {COUNTRY_FILTER_OPTIONS.map((option) => {
             const active = countryFilter.includes(option.code);
             return (

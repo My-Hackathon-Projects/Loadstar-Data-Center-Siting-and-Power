@@ -16,7 +16,7 @@ from backend.engine.contracts import (
     SearchResponse,
     SiteDetailResponse,
 )
-from backend.engine.scoring import compare_sites, search_sites
+from backend.engine.scoring import compare_sites, rank_sites, search_sites
 
 from .cache_keys import build_cache_key
 
@@ -32,9 +32,11 @@ def get_layer(layer_name: str) -> LayerResponse:
     sites = site_repository.list_sites()
     composite_scores: dict[str, float] = {}
     if layer_name == "composite_score":
-        # Run the same ranking the search endpoint uses, then index by cell_id.
-        ranked = search_sites(SearchRequest(power_mw=1.0, top_k=len(sites)), sites)
-        composite_scores = {r.site.cell_id: r.composite_score for r in ranked.results}
+        # Run the same ranking the search endpoint uses, over every cell. We use
+        # rank_sites (not search_sites) so the full collection is scored without
+        # the request's top_k cap. power_mw=1.0 keeps every cell eligible.
+        ranked = rank_sites(SearchRequest(power_mw=1.0), sites)
+        composite_scores = {r.site.cell_id: r.composite_score for r in ranked}
 
     features: list[LayerFeature] = []
     for site in sites:

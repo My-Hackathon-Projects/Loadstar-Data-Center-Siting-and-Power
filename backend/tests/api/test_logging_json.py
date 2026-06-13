@@ -42,10 +42,10 @@ def test_json_formatter_includes_extra_fields() -> None:
         exc_info=None,
     )
     record.request_id = "abc123"
-    record.cell_id = "851f25d7fffffff"
+    record.cell_id = "8508c683fffffff"
     record.solve_ms = 12.5
     payload = json.loads(formatter.format(record))
-    assert payload["cell_id"] == "851f25d7fffffff"
+    assert payload["cell_id"] == "8508c683fffffff"
     assert payload["solve_ms"] == 12.5
 
 

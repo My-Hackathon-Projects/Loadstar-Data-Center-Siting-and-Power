@@ -18,8 +18,9 @@ DEFAULT_WEIGHTS = {
 ASSUMPTIONS: dict[str, Any] = {
     "scope": {
         "region": "Europe",
-        "development_countries": ["SE", "DE", "IE"],
-        "data_mode": "fixture",
+        "served_coverage": "Major European markets across 30 countries",
+        "pipeline_development_countries": ["SE", "DE", "IE"],
+        "data_mode": "reference_dataset",
     },
     "load": {
         "default_workload_type": "training",

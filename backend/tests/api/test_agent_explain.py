@@ -32,7 +32,7 @@ def reset_settings_cache() -> Iterator[None]:
 
 def _payload() -> dict[str, object]:
     return {
-        "cell_id": "851f25d7fffffff",
+        "cell_id": "8508c683fffffff",
         "power_mw": 280,
         "workload_type": "training",
     }
@@ -48,7 +48,7 @@ def test_agent_explain_returns_template_when_llm_disabled(
     body = response.json()
     assert body["source"] == "template"
     assert body["model"] is None
-    assert body["cell_id"] == "851f25d7fffffff"
+    assert body["cell_id"] == "8508c683fffffff"
     assert "viability" in body["message"].lower() or "viable" in body["message"].lower()
     assert body["cache_key"].startswith("agent.explain:")
 

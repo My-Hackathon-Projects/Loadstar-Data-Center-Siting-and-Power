@@ -2,7 +2,10 @@ import json
 import sqlite3
 from pathlib import Path
 
+from backend.engine.fixtures import FEATURE_COLLECTION
 from backend.pipeline.alphaearth_land import run_alphaearth_land_model
+
+_SUBSET_CELL_COUNT = sum(1 for s in FEATURE_COLLECTION if s.country_code in {"SE", "DE", "IE"})
 
 
 def test_alphaearth_land_fallback_outputs_values_metrics_and_metadata(tmp_path: Path) -> None:
@@ -21,7 +24,7 @@ def test_alphaearth_land_fallback_outputs_values_metrics_and_metadata(tmp_path: 
     payload = json.loads(result.output_path.read_text(encoding="utf-8"))
     metrics = json.loads(result.metrics_path.read_text(encoding="utf-8"))
 
-    assert result.record_count == 10
+    assert result.record_count == _SUBSET_CELL_COUNT
     assert payload["source_status"] == "fallback"
     assert payload["active_method"] == "fixture_land_proxy"
     assert payload["deterministic_seed"] == 20260612
@@ -52,7 +55,7 @@ def test_alphaearth_land_fallback_outputs_values_metrics_and_metadata(tmp_path: 
 
     assert row == (
         result.checksum_sha256,
-        10,
+        _SUBSET_CELL_COUNT,
         "fallback",
         "Earth Engine project or package unavailable; using fixture land proxy.",
     )

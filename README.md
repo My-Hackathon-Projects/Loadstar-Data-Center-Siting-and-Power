@@ -109,7 +109,7 @@ Example supply optimization:
 ```bash
 curl -sS http://127.0.0.1:8000/optimize/supply-mix \
   -H "Content-Type: application/json" \
-  -d '{"cell_id": "851f25d7fffffff", "load_mw": 280, "load_profile": "flat_24_7"}'
+  -d '{"cell_id": "8508c683fffffff", "load_mw": 280, "load_profile": "flat_24_7"}'
 ```
 
 The optimizer solves a 24-hour single-site LP with grid import, wind and solar PPAs, on-site solar, battery charge/discharge, curtailment, optional backup, hourly energy balance, grid headroom, storage state of charge, and optional carbon caps. The response includes `recommended_portfolio`, `dispatch_summary`, 24 hourly `dispatch_preview` rows, `annual_matched_clean_share`, `hourly_24_7_cfe_share`, and an 8-12 point `pareto_frontier`.

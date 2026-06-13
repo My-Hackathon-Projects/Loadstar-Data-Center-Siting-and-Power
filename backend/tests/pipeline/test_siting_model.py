@@ -3,6 +3,7 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
+from backend.engine.fixtures import FEATURE_COLLECTION
 from backend.pipeline.alphaearth_land import run_alphaearth_land_model
 from backend.pipeline.feature_engineering import run_feature_engineering
 from backend.pipeline.hourly_carbon import run_hourly_carbon_ingestion
@@ -14,6 +15,8 @@ from backend.pipeline.siting_model_types import (
     TrainingExample,
 )
 from backend.pipeline.subset_ingestion import run_subset_ingestion
+
+_SUBSET_CELL_COUNT = sum(1 for s in FEATURE_COLLECTION if s.country_code in {"SE", "DE", "IE"})
 
 
 def test_siting_model_outputs_scores_explanations_metrics_and_metadata(tmp_path: Path) -> None:
@@ -55,7 +58,7 @@ def test_siting_model_outputs_scores_explanations_metrics_and_metadata(tmp_path:
 
     artifact = json.loads(result.output_path.read_text(encoding="utf-8"))
     metrics = json.loads(result.metrics_path.read_text(encoding="utf-8"))
-    assert result.record_count == 10
+    assert result.record_count == _SUBSET_CELL_COUNT
     assert artifact["active_method"] == "transparent_composite"
     assert artifact["deterministic_seed"] == 20260612
     assert 3 <= artifact["label_summary"]["negative_positive_ratio"] <= 5
@@ -98,7 +101,7 @@ def test_siting_model_outputs_scores_explanations_metrics_and_metadata(tmp_path:
             """
         ).fetchone()
 
-    assert row == (result.checksum_sha256, 10, "fallback")
+    assert row == (result.checksum_sha256, _SUBSET_CELL_COUNT, "fallback")
 
 
 def test_siting_model_lightgbm_path_records_trained_outputs(monkeypatch: Any) -> None:

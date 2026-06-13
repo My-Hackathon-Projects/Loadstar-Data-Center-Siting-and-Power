@@ -4,13 +4,13 @@ from backend.engine.optimizer import optimize_supply_mix
 
 
 def _demo_site():
-    site = get_site("851f25d7fffffff")
+    site = get_site("8508c683fffffff")
     assert site is not None
     return site
 
 
 def _high_carbon_site():
-    site = get_site("851fa62bfffffff")
+    site = get_site("851faeabfffffff")
     assert site is not None
     return site
 
@@ -31,7 +31,7 @@ def _assert_hourly_energy_balance(row: dict[str, float]) -> None:
 def test_optimizer_returns_chart_ready_pareto_frontier_for_demo_site() -> None:
     response = optimize_supply_mix(
         _demo_site(),
-        OptimizeRequest(cell_id="851f25d7fffffff", load_mw=280),
+        OptimizeRequest(cell_id="8508c683fffffff", load_mw=280),
     )
 
     assert response.solver_status == "optimal"
@@ -56,7 +56,7 @@ def test_optimizer_returns_chart_ready_pareto_frontier_for_demo_site() -> None:
 def test_optimizer_enforces_hourly_energy_balance_and_storage_bounds() -> None:
     response = optimize_supply_mix(
         _demo_site(),
-        OptimizeRequest(cell_id="851f25d7fffffff", load_mw=280, carbon_cap_g_kwh=30),
+        OptimizeRequest(cell_id="8508c683fffffff", load_mw=280, carbon_cap_g_kwh=30),
     )
     summary = response.dispatch_summary
 
@@ -79,11 +79,11 @@ def test_optimizer_enforces_hourly_energy_balance_and_storage_bounds() -> None:
 def test_optimizer_respects_optional_carbon_cap() -> None:
     unconstrained = optimize_supply_mix(
         _high_carbon_site(),
-        OptimizeRequest(cell_id="851fa62bfffffff", load_mw=280),
+        OptimizeRequest(cell_id="851faeabfffffff", load_mw=280),
     )
     constrained = optimize_supply_mix(
         _high_carbon_site(),
-        OptimizeRequest(cell_id="851fa62bfffffff", load_mw=280, carbon_cap_g_kwh=100),
+        OptimizeRequest(cell_id="851faeabfffffff", load_mw=280, carbon_cap_g_kwh=100),
     )
 
     assert constrained.effective_carbon_g_kwh <= 100.05
@@ -95,7 +95,7 @@ def test_optimizer_supports_spiky_training_load_profile() -> None:
     response = optimize_supply_mix(
         _demo_site(),
         OptimizeRequest(
-            cell_id="851f25d7fffffff",
+            cell_id="8508c683fffffff",
             load_mw=280,
             load_profile="spiky_training",
         ),

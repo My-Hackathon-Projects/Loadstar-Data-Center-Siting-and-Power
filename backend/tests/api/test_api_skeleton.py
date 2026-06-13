@@ -165,7 +165,7 @@ def test_detail_and_optimizer_complete_demo_contract() -> None:
 def test_compare_sites() -> None:
     response = client.post(
         "/sites/compare",
-        json={"cell_ids": ["851f25d7fffffff", "851fa62bfffffff"]},
+        json={"cell_ids": ["8508c683fffffff", "851faeabfffffff"]},
     )
     assert response.status_code == 200
     payload = response.json()
@@ -212,7 +212,7 @@ def test_unknown_site_errors_are_clear_and_structured() -> None:
     detail = client.get("/sites/not-a-cell")
     compare = client.post(
         "/sites/compare",
-        json={"cell_ids": ["851f25d7fffffff", "not-a-cell"]},
+        json={"cell_ids": ["8508c683fffffff", "not-a-cell"]},
     )
     optimize = client.post(
         "/optimize/supply-mix",

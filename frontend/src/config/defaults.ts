@@ -36,14 +36,45 @@ export const WEIGHT_FACTORS: ReadonlyArray<{
   { key: "ml", label: "ml viability" },
 ];
 
-/** Country filter chips exposed in the specifications bar (fixture coverage). */
+/**
+ * Country filter options exposed in the specifications bar. Covers every market
+ * in the served dataset (`backend/engine/data/europe_sites.json`); keep in sync
+ * when the dataset's country set changes. Sorted by display label.
+ */
 export const COUNTRY_FILTER_OPTIONS: ReadonlyArray<{
   code: string;
   label: string;
 }> = [
-  { code: "SE", label: "Sweden" },
+  { code: "AT", label: "Austria" },
+  { code: "BE", label: "Belgium" },
+  { code: "BG", label: "Bulgaria" },
+  { code: "HR", label: "Croatia" },
+  { code: "CZ", label: "Czechia" },
+  { code: "DK", label: "Denmark" },
+  { code: "EE", label: "Estonia" },
+  { code: "FI", label: "Finland" },
+  { code: "FR", label: "France" },
   { code: "DE", label: "Germany" },
+  { code: "GR", label: "Greece" },
+  { code: "HU", label: "Hungary" },
+  { code: "IS", label: "Iceland" },
   { code: "IE", label: "Ireland" },
+  { code: "IT", label: "Italy" },
+  { code: "LV", label: "Latvia" },
+  { code: "LT", label: "Lithuania" },
+  { code: "LU", label: "Luxembourg" },
+  { code: "NL", label: "Netherlands" },
+  { code: "NO", label: "Norway" },
+  { code: "PL", label: "Poland" },
+  { code: "PT", label: "Portugal" },
+  { code: "RO", label: "Romania" },
+  { code: "RS", label: "Serbia" },
+  { code: "SK", label: "Slovakia" },
+  { code: "SI", label: "Slovenia" },
+  { code: "ES", label: "Spain" },
+  { code: "SE", label: "Sweden" },
+  { code: "CH", label: "Switzerland" },
+  { code: "GB", label: "United Kingdom" },
 ];
 
 /**
