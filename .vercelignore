@@ -6,11 +6,13 @@
 __pycache__/
 **/__pycache__/
 *.py[cod]
-data/
-eval/
+# Anchored to repo root so they do not also match frontend/public/data, which
+# ships the SPA's static dataset and must reach the Vercel build.
+/data/
+/eval/
 frontend/dist/
 frontend/node_modules/
 frontend/playwright-report/
 frontend/test-results/
-ml/
-public/challenge/
+/ml/
+/public/challenge/

@@ -39,6 +39,14 @@ const LARGE_WARNING =
 const LOWER_PERCENTILE = 5;
 const UPPER_PERCENTILE = 95;
 
+/**
+ * Search inputs the engine accepts. Only `power_mw` is required; the engine
+ * applies the same defaults the backend does for the rest. The generated
+ * `SearchRequest` (which marks all fields required) is assignable to this.
+ */
+export type SearchInput = Pick<SearchRequest, "power_mw"> &
+  Partial<Pick<SearchRequest, "workload_type" | "top_k" | "weights" | "country_filter">>;
+
 type Direction = "lower_is_better" | "higher_is_better" | "composite";
 
 const clamp01 = (value: number): number => Math.min(Math.max(value, 0), 1);
@@ -194,7 +202,7 @@ const SCORE_FACTORS: ScoreFactor[] = [
   },
 ];
 
-function resolveWeights(request: SearchRequest): Weights {
+function resolveWeights(request: SearchInput): Weights {
   return request.weights ?? DEFAULT_WEIGHTS;
 }
 
@@ -209,7 +217,7 @@ function scaleWarnings(powerMw: number): ScaleWarning[] {
   return warnings;
 }
 
-export function eligibleSites(request: SearchRequest, sites: SiteFeature[]): SiteFeature[] {
+export function eligibleSites(request: SearchInput, sites: SiteFeature[]): SiteFeature[] {
   const countries = new Set((request.country_filter ?? []).map((code) => code.toUpperCase()));
   return sites.filter(
     (site) =>
@@ -258,7 +266,7 @@ function scoreSite(
 }
 
 /** Every eligible site ranked best-first, ignoring top_k (mirrors rank_sites). */
-export function rankSites(request: SearchRequest, sites: SiteFeature[]): RankedSite[] {
+export function rankSites(request: SearchInput, sites: SiteFeature[]): RankedSite[] {
   const candidates = eligibleSites(request, sites);
   const weights = resolveWeights(request);
   return candidates
@@ -271,7 +279,7 @@ export function rankSites(request: SearchRequest, sites: SiteFeature[]): RankedS
     );
 }
 
-export function searchSitesLocal(request: SearchRequest, sites: SiteFeature[]): SearchResponse {
+export function searchSitesLocal(request: SearchInput, sites: SiteFeature[]): SearchResponse {
   const ranked = rankSites(request, sites);
   const topK = request.top_k ?? 10;
   return {

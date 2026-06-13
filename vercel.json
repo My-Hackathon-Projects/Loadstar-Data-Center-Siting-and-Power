@@ -1,4 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "npm --prefix frontend ci && npm --prefix frontend run build && rm -rf frontend/node_modules"
+  "buildCommand": "npm --prefix frontend ci && npm --prefix frontend run build && rm -rf frontend/node_modules",
+  "outputDirectory": "frontend/dist",
+  "rewrites": [{ "source": "/((?!assets/|data/|layers/|geo/|fonts/).*)", "destination": "/index.html" }]
 }

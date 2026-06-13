@@ -1,4 +1,4 @@
-.PHONY: setup dev frontend-dev web-dev frontend-types lint format typecheck test e2e migrate migrate-sqlite pipeline-subset ingest-subset carbon-subset alphaearth-land-subset features-subset siting-model-subset layer-assets
+.PHONY: setup dev frontend-dev web-dev frontend-types lint format typecheck test e2e migrate migrate-sqlite pipeline-subset ingest-subset carbon-subset alphaearth-land-subset features-subset siting-model-subset layer-assets dataset
 
 setup:
 	python3 -m pip install -r requirements.txt
@@ -64,4 +64,9 @@ siting-model-subset:
 	python3 -m backend.pipeline.siting_model --countries SE,DE,IE --input-dir data/processed/subset --output-dir data/processed/subset --eval-dir eval --metadata-database data/processed/source_artifacts.db
 
 layer-assets:
+	python3 -m backend.pipeline.build_layer_assets
+
+# Regenerate the Europe-wide site dataset and all derived static assets.
+dataset:
+	node scripts/build_europe_dataset.mjs
 	python3 -m backend.pipeline.build_layer_assets

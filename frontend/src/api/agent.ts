@@ -1,4 +1,4 @@
-import { DEFAULT_SEARCH_TOP_K } from "../config/defaults";
+import { DEFAULT_SEARCH_TOP_K, DEFAULT_WEIGHTS } from "../config/defaults";
 import { getSiteLocal, searchSitesLocal } from "../lib/siteEngine";
 import type {
   AgentChatRequest,
@@ -57,10 +57,14 @@ export async function chatAgent(payload: AgentChatRequest): Promise<AgentChatRes
       body: JSON.stringify(payload),
     });
   }
+  // A complete request so FredPanel.applySearchAction can write every search
+  // field (weights, country_filter) into the UI store without gaps.
   const request: SearchRequest = {
     power_mw: payload.power_mw,
     workload_type: payload.workload_type,
     top_k: DEFAULT_SEARCH_TOP_K,
+    weights: DEFAULT_WEIGHTS,
+    country_filter: null,
   };
   const search = searchSitesLocal(request, await loadSites());
   const focus = search.results[0]?.site.cell_id ?? null;

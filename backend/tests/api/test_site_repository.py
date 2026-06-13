@@ -49,7 +49,8 @@ def test_repository_falls_back_to_fixtures_when_artifact_missing(
 
     assert len(sites) == len(FEATURE_COLLECTION)
     by_id = {site.cell_id: site for site in sites}
-    assert by_id["851f25d7fffffff"].lightgbm_score == FEATURE_COLLECTION[0].lightgbm_score
+    sample = FEATURE_COLLECTION[0]
+    assert by_id[sample.cell_id].lightgbm_score == sample.lightgbm_score
 
 
 def test_repository_loads_pipeline_records_when_artifact_present(
