@@ -10,7 +10,7 @@ router = APIRouter(prefix="/optimize", tags=["optimizer"])
 
 @router.post("/supply-mix", response_model=SupplyMixResponse)
 def optimize(request: OptimizeRequest) -> SupplyMixResponse:
-    """Return a chart-ready fixture supply-mix optimization response."""
+    """Return a chart-ready single-site supply-mix optimization response."""
 
     try:
         return optimize_site_supply(request)

@@ -138,6 +138,8 @@ class ParetoPoint(BaseModel):
     solar_ppa_share: float
     onsite_solar_share: float
     battery_shifted_share: float
+    backup_share: float
+    curtailment_share: float
 
 
 class SupplyMixResponse(BaseModel):
@@ -145,10 +147,13 @@ class SupplyMixResponse(BaseModel):
     cell_id: str
     load_mw: float
     load_profile: str
+    solver_status: str
+    optimization_horizon_hours: int
     recommended_portfolio: dict[str, float]
     effective_cost_eur_mwh: float
     effective_carbon_g_kwh: float
     annual_matched_clean_share: float
     hourly_24_7_cfe_share: float
     pareto_frontier: list[ParetoPoint]
+    dispatch_summary: dict[str, float]
     dispatch_preview: list[dict[str, float]]

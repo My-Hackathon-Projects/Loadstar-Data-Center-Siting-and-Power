@@ -14,5 +14,12 @@ web/.vite/
 web/*.tsbuildinfo
 web/vite.config.d.ts
 web/vite.config.js
+frontend/dist/
+frontend/node_modules/
+frontend/coverage/
+frontend/.vite/
+frontend/*.tsbuildinfo
+frontend/vite.config.d.ts
+frontend/vite.config.js
 AGENTS.md
 CLAUDE.md

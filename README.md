@@ -2,7 +2,7 @@
 
 Loadstar is a decision-support product for the Invertix **Data-Center Siting & Power** challenge. It recommends European data-center locations for a requested MW size, explains trade-offs across energy and connectivity constraints, and returns a chart-ready supply-mix optimization response for the selected site.
 
-The current implementation covers issues `#1` through `#11`:
+The current implementation covers issues `#1` through `#12`:
 
 - `public/docs/plan.md` is the canonical build plan.
 - `public/docs/access_decisions.md` records task-zero external source checks and downstream fallback implications.
@@ -12,6 +12,7 @@ The current implementation covers issues `#1` through `#11`:
 - A subset AlphaEarth land pipeline writes buildable-land and data-center-similarity features with deterministic fallback metrics.
 - A siting propensity pipeline trains LightGBM viability scores and records SHAP-style explanations, with a deterministic composite fallback when LightGBM is unavailable.
 - Deterministic site scoring ranks eligible cells with additive score breakdowns for API, UI, and agent explanations.
+- A deterministic single-site LP optimizer returns a cost/carbon Pareto frontier, portfolio, dispatch summary, annual matched clean share, and hourly 24/7 CFE share.
 
 ## Repository Layout
 
@@ -28,7 +29,7 @@ The fixture skeleton supports the required first integration path:
 1. Enter a 280 MW AI training campus.
 2. Search fixture sites in Sweden, Germany, and Ireland.
 3. Open a site detail view.
-4. Run the fake-but-contract-shaped Pareto optimizer response.
+4. Run the site-level Pareto optimizer for the selected cell.
 
 The fixture data deliberately uses the same field names as the planned `site_features` contract so later ingestion issues can swap real data behind the same interface.
 
@@ -88,6 +89,16 @@ curl -sS http://127.0.0.1:8000/sites/search \
 ```
 
 Search hard-filters excluded cells and cells below the requested MW headroom. Each ranked result includes `composite_score`, `score_breakdown`, `score_contributions`, and `score_explanations` across price, carbon, congestion, grid distance, connectivity, land, and ML viability. Requests below 20 MW or above 700 MW include scale-band warnings.
+
+Example supply optimization:
+
+```bash
+curl -sS http://127.0.0.1:8000/optimize/supply-mix \
+  -H "Content-Type: application/json" \
+  -d '{"cell_id": "851f25d7fffffff", "load_mw": 280, "load_profile": "flat_24_7"}'
+```
+
+The optimizer solves a 24-hour single-site LP with grid import, wind and solar PPAs, on-site solar, battery charge/discharge, curtailment, optional backup, hourly energy balance, grid headroom, storage state of charge, and optional carbon caps. The response includes `recommended_portfolio`, `dispatch_summary`, 24 hourly `dispatch_preview` rows, `annual_matched_clean_share`, `hourly_24_7_cfe_share`, and an 8-12 point `pareto_frontier`.
 
 ## Task-Zero Access Checks
 
@@ -217,6 +228,7 @@ The current tests cover:
 - deterministic additive site scoring and score explanations
 - fixture response shape
 - detail and optimizer contracts
+- optimizer energy balance, storage bounds, carbon caps, and spiky training load shape
 - access decision fallback behavior
 - applying the four-table schema from zero
 - subset ingestion artifacts and source metadata
@@ -230,5 +242,5 @@ The current tests cover:
 - No full-Europe ingestion yet.
 - No PostGIS service requirement yet.
 - No full-Europe AlphaEarth export yet; run the subset path first.
-- No real LP solver yet; the optimizer response is a plausible fixture contract.
+- No full-year production optimizer yet; Issue 12 uses a deterministic 24-hour representative LP for the demo path.
 - No Git commits or pushes from the agent.

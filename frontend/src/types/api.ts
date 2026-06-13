@@ -69,6 +69,7 @@ export interface SiteDetailResponse {
 export interface OptimizeRequest {
   cell_id: string;
   load_mw: number;
+  carbon_cap_g_kwh?: number | null;
   load_profile: "flat_24_7" | "spiky_training";
 }
 
@@ -81,6 +82,41 @@ export interface ParetoPoint {
   solar_ppa_share: number;
   onsite_solar_share: number;
   battery_shifted_share: number;
+  backup_share: number;
+  curtailment_share: number;
+}
+
+export interface DispatchSummary {
+  total_load_mwh: number;
+  total_grid_mwh: number;
+  total_wind_ppa_mwh: number;
+  total_solar_ppa_mwh: number;
+  total_onsite_solar_mwh: number;
+  total_backup_mwh: number;
+  total_battery_charge_mwh: number;
+  total_battery_discharge_mwh: number;
+  total_curtailment_mwh: number;
+  wind_ppa_capacity_mw: number;
+  solar_ppa_capacity_mw: number;
+  onsite_solar_capacity_mw: number;
+  battery_power_capacity_mw: number;
+  battery_energy_capacity_mwh: number;
+  backup_capacity_mw: number;
+  grid_limit_mw: number;
+}
+
+export interface DispatchPreviewRow {
+  hour: number;
+  load_mw: number;
+  grid_mw: number;
+  wind_ppa_mw: number;
+  solar_ppa_mw: number;
+  onsite_solar_mw: number;
+  battery_charge_mw: number;
+  battery_discharge_mw: number;
+  battery_soc_mwh: number;
+  backup_mw: number;
+  curtailment_mw: number;
 }
 
 export interface SupplyMixResponse {
@@ -88,11 +124,14 @@ export interface SupplyMixResponse {
   cell_id: string;
   load_mw: number;
   load_profile: string;
+  solver_status: string;
+  optimization_horizon_hours: number;
   recommended_portfolio: Record<string, number>;
   effective_cost_eur_mwh: number;
   effective_carbon_g_kwh: number;
   annual_matched_clean_share: number;
   hourly_24_7_cfe_share: number;
   pareto_frontier: ParetoPoint[];
-  dispatch_preview: Array<Record<string, number>>;
+  dispatch_summary: DispatchSummary;
+  dispatch_preview: DispatchPreviewRow[];
 }

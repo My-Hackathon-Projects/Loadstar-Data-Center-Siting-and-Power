@@ -94,8 +94,26 @@ def test_detail_and_optimizer_complete_demo_contract() -> None:
     assert optimize.status_code == 200
     payload = optimize.json()
     assert payload["cell_id"] == cell_id
-    assert payload["pareto_frontier"]
+    assert payload["solver_status"] == "optimal"
+    assert 8 <= len(payload["pareto_frontier"]) <= 12
+    assert payload["dispatch_summary"]["total_load_mwh"] > 0
     assert payload["dispatch_preview"]
+    first_dispatch = payload["dispatch_preview"][0]
+    assert {
+        "hour",
+        "load_mw",
+        "grid_mw",
+        "wind_ppa_mw",
+        "solar_ppa_mw",
+        "onsite_solar_mw",
+        "battery_charge_mw",
+        "battery_discharge_mw",
+        "battery_soc_mwh",
+        "backup_mw",
+        "curtailment_mw",
+    }.issubset(first_dispatch)
+    first_point = payload["pareto_frontier"][0]
+    assert {"backup_share", "curtailment_share"}.issubset(first_point)
     assert "hourly_24_7_cfe_share" in payload
 
 

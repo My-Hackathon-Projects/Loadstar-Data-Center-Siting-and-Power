@@ -1,7 +1,18 @@
-import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import {
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 import { useUiStore } from "../../hooks/useUiStore";
-import { formatCarbon, formatEurPerMwh, formatPercent } from "../../lib/formatters";
+import {
+  formatCarbon,
+  formatEurPerMwh,
+  formatPercent,
+} from "../../lib/formatters";
 import { useOptimizeSupplyMix } from "../../lib/queries";
 
 export function OptimizerPanel() {
@@ -25,7 +36,7 @@ export function OptimizerPanel() {
             mutation.mutate({
               cell_id: selectedCellId,
               load_mw: powerMw,
-              load_profile: loadProfile
+              load_profile: loadProfile,
             });
           }
         }}
@@ -48,11 +59,19 @@ export function OptimizerPanel() {
         </ResponsiveContainer>
       </div>
       {result ? (
-        <p className="mt-3 text-sm text-slate-600">
-          Cost {formatEurPerMwh(result.effective_cost_eur_mwh)} · Carbon{" "}
-          {formatCarbon(result.effective_carbon_g_kwh)} · 24/7 CFE{" "}
-          {formatPercent(result.hourly_24_7_cfe_share)}
-        </p>
+        <div className="mt-3 space-y-1 text-sm text-slate-600">
+          <p>
+            Cost {formatEurPerMwh(result.effective_cost_eur_mwh)} · Carbon{" "}
+            {formatCarbon(result.effective_carbon_g_kwh)} · 24/7 CFE{" "}
+            {formatPercent(result.hourly_24_7_cfe_share)}
+          </p>
+          <p>
+            Solver {result.solver_status} · Annual clean{" "}
+            {formatPercent(result.annual_matched_clean_share)} · Battery{" "}
+            {result.dispatch_summary.battery_power_capacity_mw.toFixed(1)} MW /{" "}
+            {result.dispatch_summary.battery_energy_capacity_mwh.toFixed(1)} MWh
+          </p>
+        </div>
       ) : null}
     </section>
   );

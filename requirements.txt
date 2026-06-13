@@ -7,5 +7,6 @@ pydantic-settings
 pyright
 pytest
 ruff
+scipy
 typer
 uvicorn

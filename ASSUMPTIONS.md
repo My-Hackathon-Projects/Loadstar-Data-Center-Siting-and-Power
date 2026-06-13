@@ -42,6 +42,15 @@ This file is the single source for numeric assumptions used by the skeleton, lat
 | Gas backup capex | `800 EUR/kW` | Design doc | Optional firmness placeholder; not active in issue 1-5 skeleton. |
 | Wind PPA strike | `55 EUR/MWh` | Hackathon modeling assumption | Plausible fixed strike for early comparative planning; replace with sourced values later. |
 | Solar PPA strike | `45 EUR/MWh` | Hackathon modeling assumption | Plausible fixed strike for early comparative planning; replace with sourced values later. |
+| Optimization horizon | `24` representative hours | Issue 12 implementation | Keeps the demo path interactive while preserving hourly balance and storage constraints. |
+| Carbon cap sweep | `10` points including an unconstrained solve | Issue 12 implementation | Produces an 8-12 point cost/carbon Pareto frontier for one selected site. |
+| Battery round-trip model | `94%` charge efficiency and `94%` discharge efficiency | Issue 12 implementation | Simple deterministic storage physics for the representative-day LP. |
+| Backup emissions | `620 gCO2e/kWh` | Issue 12 implementation | Conservative optional backup emissions placeholder until generator-specific data is ingested. |
+| Backup variable cost | `260 EUR/MWh` | Issue 12 implementation | Keeps backup available for feasibility without making it attractive against grid or clean supply. |
+| Grid import margin | `1 EUR/MWh` | Issue 12 implementation | Represents small delivery/imbalance costs on top of fixture market prices. |
+| On-site solar variable cost | `4 EUR/MWh` | Issue 12 implementation | Small operating-cost placeholder for direct on-site production. |
+| Curtailment penalty | `0.05 EUR/MWh` | Issue 12 implementation | Breaks ties toward useful generation while keeping curtailment available. |
+| Daily capacity costs | wind `150 EUR/MW-day`, solar PPA `145 EUR/MW-day`, on-site solar `120 EUR/MW-day`, battery power `36 EUR/MW-day`, battery energy `10 EUR/MWh-day`, backup `28 EUR/MW-day` | Issue 12 implementation | Converts planning cost signals into LP coefficients for the representative-day demo. |
 
 ## Hourly Carbon
 
