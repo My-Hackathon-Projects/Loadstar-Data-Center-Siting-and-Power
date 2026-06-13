@@ -1,6 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  FormEvent,
   Suspense,
   lazy,
   useCallback,
@@ -97,8 +96,8 @@ function FlightNarrative() {
 }
 
 function Greeting({ onCommand }: { onCommand: () => void }) {
-  const [draft, setDraft] = useState("");
   const greetedRef = useRef(false);
+  const [waitingForResponse, setWaitingForResponse] = useState(false);
 
   const submitCommand = useCallback(
     (rawCommand: string) => {
@@ -106,6 +105,7 @@ function Greeting({ onCommand }: { onCommand: () => void }) {
       if (!command) {
         return;
       }
+      setWaitingForResponse(false);
       savePendingFredPrompt(command);
       onCommand();
     },
@@ -113,21 +113,34 @@ function Greeting({ onCommand }: { onCommand: () => void }) {
   );
 
   const speech = useSpeechInput({ onFinalTranscript: submitCommand });
+  const {
+    error: speechError,
+    listening,
+    start,
+    supported,
+    transcript,
+  } = speech;
 
   useEffect(() => {
     if (greetedRef.current) {
       return;
     }
     greetedRef.current = true;
-    speakFred(FRED_GREETING);
-  }, []);
+    void speakFred(FRED_GREETING, {
+      onEnd: () => {
+        setWaitingForResponse(true);
+        start();
+      },
+    });
+  }, [start]);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    submitCommand(draft);
-  }
-
-  const visibleDraft = speech.listening && speech.transcript ? speech.transcript : draft;
+  useEffect(() => {
+    if (!waitingForResponse || listening || speechError) {
+      return;
+    }
+    const timer = window.setTimeout(start, 350);
+    return () => window.clearTimeout(timer);
+  }, [listening, speechError, start, waitingForResponse]);
 
   return (
     <motion.div
@@ -137,34 +150,15 @@ function Greeting({ onCommand }: { onCommand: () => void }) {
       <div className="flex w-full max-w-md flex-col items-center gap-4 rounded-2xl border border-subtle bg-panel px-6 py-6">
         <VoiceBars active={speech.listening} bars={6} />
         <p className="text-center text-lg text-primary">{FRED_GREETING}</p>
-        <form className="flex w-full gap-2" onSubmit={handleSubmit}>
-          <input
-            autoFocus
-            className="min-w-0 flex-1 rounded-full border border-subtle bg-void px-4 py-2.5 text-center text-sm text-primary outline-none placeholder:text-faint focus:border-accent"
-            onChange={(event) => setDraft(event.target.value)}
-            placeholder="ask fred"
-            value={visibleDraft}
-          />
-          {speech.supported ? (
-            <button
-              aria-label={speech.listening ? "stop voice input" : "start voice input"}
-              className="rounded-full border border-subtle px-3 py-2.5 text-xs lowercase text-dim transition-colors hover:border-accent hover:text-accent"
-              onClick={speech.toggle}
-              type="button"
-            >
-              {speech.listening ? "stop" : "voice"}
-            </button>
-          ) : null}
-          <button
-            className="rounded-full bg-accent px-4 py-2.5 text-sm font-medium text-accent-contrast transition-opacity disabled:opacity-40"
-            disabled={!visibleDraft.trim()}
-            type="submit"
-          >
-            ask
-          </button>
-        </form>
-        {speech.error ? (
-          <p className="text-center text-xs text-dim">{speech.error}</p>
+        <div className="min-h-10 w-full rounded-full border border-subtle bg-void px-4 py-2.5 text-center text-sm text-dim">
+          {!supported
+            ? "voice input is unavailable in this browser"
+            : listening
+              ? transcript || "listening..."
+              : "waiting for voice..."}
+        </div>
+        {speechError ? (
+          <p className="text-center text-xs text-dim">{speechError}</p>
         ) : null}
       </div>
     </motion.div>

@@ -27,7 +27,7 @@ export const JOURNEY_TIMING = {
 } as const;
 
 export const PRODUCT_NAME = "loadstar";
-export const FRED_GREETING = "Hello, my name is Fred. How can I help you?";
+export const FRED_GREETING = "Hello, my name is Fred. How can I help you today?";
 
 /** Starfield: one BufferGeometry, additive blending, a single draw call. */
 export const STARFIELD = {

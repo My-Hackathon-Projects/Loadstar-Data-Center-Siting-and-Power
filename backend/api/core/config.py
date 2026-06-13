@@ -11,7 +11,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal, Self
 
-from pydantic import Field, model_validator
+from pydantic import AliasChoices, Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # `Path(__file__).resolve().parents[3]` walks: core -> api -> backend -> repo root.
@@ -49,6 +49,17 @@ class Settings(BaseSettings):
     openai_api_key: str | None = None
     openai_model: str = "gpt-4o-mini"
     openai_enabled: bool = Field(default=False, alias="LOADSTAR_LLM_ENABLED")
+
+    # ElevenLabs text-to-speech for Fred. The API key stays server-side; the
+    # frontend receives only generated audio bytes from `/agent/speech`.
+    elevenlabs_api_key: str | None = None
+    elevenlabs_voice_id: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("ELEVENLABS_VOICE_ID", "ELEVEBLABS_VOICE_ID"),
+    )
+    elevenlabs_model: str = "eleven_multilingual_v2"
+    elevenlabs_output_format: str = "mp3_44100_128"
+    elevenlabs_timeout_seconds: float = 15.0
 
     # Ember credentials consumed by the access-check CLI. Surfaced here so secrets
     # live in `Settings`, not in scattered `os.getenv` calls.

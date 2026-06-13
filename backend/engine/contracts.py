@@ -291,6 +291,12 @@ class ExplainResponse(BaseModel):
     cache_key: str
 
 
+class FredSpeechRequest(BaseModel):
+    """Text Fred should speak through the configured ElevenLabs voice."""
+
+    text: str = Field(min_length=1, max_length=1200)
+
+
 class AgentChatTurn(BaseModel):
     """One recent chat turn sent back to Fred for conversational context."""
 

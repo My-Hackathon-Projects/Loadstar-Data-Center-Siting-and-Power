@@ -102,7 +102,7 @@ def test_chat_greeting_waits_without_dashboard_action(
     body = _post(client, "hello fred")
 
     assert body["source"] == "template"
-    assert body["message"] == "Hello, my name is Fred. How can I help you?"
+    assert body["message"] == "Hello, my name is Fred. How can I help you today?"
     assert body["action"]["type"] == "none"
     assert body["action"]["search"] is None
     assert body["action"]["applied"] is None

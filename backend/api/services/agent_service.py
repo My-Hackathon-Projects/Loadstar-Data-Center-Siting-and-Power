@@ -140,7 +140,7 @@ _HELP_INTENT_TERMS = (
 
 _THANKS_TERMS = ("thanks", "thank you", "appreciate it")
 
-FRED_INTRO = "Hello, my name is Fred. How can I help you?"
+FRED_INTRO = "Hello, my name is Fred. How can I help you today?"
 
 
 def _parse_country_filter(text: str) -> list[str] | None:

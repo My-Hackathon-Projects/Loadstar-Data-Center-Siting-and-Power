@@ -1,4 +1,4 @@
-import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useUiStore } from "../../hooks/useUiStore";
 import { useSpeechInput } from "../../hooks/useSpeechInput";
@@ -32,10 +32,11 @@ function toAgentHistory(messages: ChatMessage[]): AgentChatHistory {
 }
 
 export function FredPanel() {
-  const [draft, setDraft] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([INTRO]);
+  const [waitingForResponse, setWaitingForResponse] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
-  const consumedPendingPromptRef = useRef(false);
+  const initializedRef = useRef(false);
+  const startListeningRef = useRef<() => void>(() => undefined);
 
   const powerMw = useUiStore((state) => state.powerMw);
   const workloadType = useUiStore((state) => state.workloadType);
@@ -58,8 +59,8 @@ export function FredPanel() {
         return;
       }
 
+      setWaitingForResponse(false);
       const history = toAgentHistory(messages);
-      setDraft("");
       append({ body: message, speaker: "user" });
       chat.mutate(
         {
@@ -77,7 +78,12 @@ export function FredPanel() {
               source: response.source,
               model: response.model,
             });
-            speakFred(response.message);
+            void speakFred(response.message, {
+              onEnd: () => {
+                setWaitingForResponse(true);
+                startListeningRef.current();
+              },
+            });
 
             if (response.action.type === "search" && response.action.applied) {
               const applied = response.action.applied;
@@ -101,7 +107,12 @@ export function FredPanel() {
               speaker: "assistant",
               source: "template",
             });
-            speakFred(failure);
+            void speakFred(failure, {
+              onEnd: () => {
+                setWaitingForResponse(true);
+                startListeningRef.current();
+              },
+            });
           },
         },
       );
@@ -120,7 +131,6 @@ export function FredPanel() {
 
   const handleVoiceTranscript = useCallback(
     (transcript: string) => {
-      setDraft(transcript);
       runAgent(transcript);
     },
     [runAgent],
@@ -129,30 +139,45 @@ export function FredPanel() {
   const speech = useSpeechInput({ onFinalTranscript: handleVoiceTranscript });
 
   useEffect(() => {
-    if (consumedPendingPromptRef.current || chat.isPending) {
-      return;
-    }
+    startListeningRef.current = speech.start;
+  }, [speech.start]);
 
+  useEffect(() => {
     const timer = window.setTimeout(() => {
-      if (consumedPendingPromptRef.current || chat.isPending) {
+      if (initializedRef.current || chat.isPending) {
         return;
       }
-      consumedPendingPromptRef.current = true;
+      initializedRef.current = true;
       const pendingPrompt = consumePendingFredPrompt();
       if (pendingPrompt !== null) {
         runAgent(pendingPrompt);
+        return;
       }
+
+      void speakFred(FRED_GREETING, {
+        onEnd: () => {
+          setWaitingForResponse(true);
+          startListeningRef.current();
+        },
+      });
     }, 0);
 
     return () => window.clearTimeout(timer);
   }, [chat.isPending, runAgent]);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    runAgent(draft);
-  }
-
-  const visibleDraft = speech.listening && speech.transcript ? speech.transcript : draft;
+  useEffect(() => {
+    if (!waitingForResponse || chat.isPending || speech.listening || speech.error) {
+      return;
+    }
+    const timer = window.setTimeout(speech.start, 350);
+    return () => window.clearTimeout(timer);
+  }, [
+    chat.isPending,
+    speech.error,
+    speech.listening,
+    speech.start,
+    waitingForResponse,
+  ]);
 
   return (
     <section className="flex h-full flex-col rounded-2xl border border-subtle bg-panel p-4">
@@ -187,32 +212,15 @@ export function FredPanel() {
         ) : null}
       </div>
 
-      <form className="mt-3 flex gap-2" onSubmit={handleSubmit}>
-        <input
-          className="min-w-0 flex-1 rounded-full border border-subtle bg-void px-4 py-2.5 text-sm text-primary outline-none placeholder:text-faint focus:border-accent"
-          onChange={(event) => setDraft(event.target.value)}
-          placeholder="ask fred to find sites"
-          value={visibleDraft}
-        />
-        {speech.supported ? (
-          <button
-            aria-label={speech.listening ? "stop voice input" : "start voice input"}
-            className="rounded-full border border-subtle px-3 py-2.5 text-xs lowercase text-dim transition-colors hover:border-accent hover:text-accent disabled:opacity-40"
-            disabled={chat.isPending}
-            onClick={speech.toggle}
-            type="button"
-          >
-            {speech.listening ? "stop" : "voice"}
-          </button>
-        ) : null}
-        <button
-          className="rounded-full bg-accent px-4 py-2.5 text-sm font-medium text-accent-contrast transition-opacity disabled:opacity-40"
-          disabled={chat.isPending || !visibleDraft.trim()}
-          type="submit"
-        >
-          Send
-        </button>
-      </form>
+      <div className="mt-3 min-h-10 rounded-full border border-subtle bg-void px-4 py-2.5 text-center text-sm text-dim">
+        {!speech.supported
+          ? "voice input is unavailable in this browser"
+          : chat.isPending
+          ? "working..."
+          : speech.listening
+            ? speech.transcript || "listening..."
+            : "waiting for voice..."}
+      </div>
       {speech.error ? <p className="mt-2 text-xs text-dim">{speech.error}</p> : null}
     </section>
   );
