@@ -1,5 +1,6 @@
 earthengine-api
 fastapi
+httpx
 lightgbm
 numpy
 openai>=1.40

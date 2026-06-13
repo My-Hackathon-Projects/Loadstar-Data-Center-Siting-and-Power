@@ -1,12 +1,19 @@
-"""Server-side text-to-speech adapter for Fred's voice."""
+"""Server-side text-to-speech adapter for Fred's voice.
+
+Uses ``httpx`` instead of ``urllib`` because the latter relies on the system
+Python's SSL truststore, which is empty on the python.org macOS installer and
+fails every HTTPS call with ``URLError([SSL: CERTIFICATE_VERIFY_FAILED])``.
+``httpx`` ships with ``certifi``'s CA bundle by default, so the request works
+out of the box on any platform without an "Install Certificates" step.
+"""
 
 from __future__ import annotations
 
-import asyncio
-import json
 import logging
 from dataclasses import dataclass
-from urllib import error, parse, request
+from urllib.parse import quote
+
+import httpx
 
 from backend.api.core.config import get_settings
 from backend.engine.contracts import FredSpeechRequest
@@ -39,56 +46,20 @@ async def synthesize_fred_speech(payload: FredSpeechRequest) -> SpeechAudio:
     if not settings.elevenlabs_api_key or not settings.elevenlabs_voice_id:
         raise SpeechConfigurationError("ElevenLabs voice is not configured.")
 
-    return await asyncio.to_thread(
-        _post_elevenlabs_speech,
-        api_key=settings.elevenlabs_api_key,
-        voice_id=settings.elevenlabs_voice_id,
-        model=settings.elevenlabs_model,
-        output_format=settings.elevenlabs_output_format,
-        timeout_seconds=settings.elevenlabs_timeout_seconds,
-        text=payload.text,
-    )
-
-
-def _post_elevenlabs_speech(
-    *,
-    api_key: str,
-    voice_id: str,
-    model: str,
-    output_format: str,
-    timeout_seconds: float,
-    text: str,
-) -> SpeechAudio:
-    query = parse.urlencode({"output_format": output_format})
-    safe_voice_id = parse.quote(voice_id, safe="")
-    url = f"{_ELEVENLABS_BASE_URL}/{safe_voice_id}/stream?{query}"
-    body = json.dumps({"text": text, "model_id": model}).encode("utf-8")
-    upstream_request = request.Request(
-        url,
-        data=body,
-        headers={
-            "Content-Type": "application/json",
-            "Accept": "audio/mpeg",
-            "xi-api-key": api_key,
-        },
-        method="POST",
-    )
+    safe_voice_id = quote(settings.elevenlabs_voice_id, safe="")
+    url = f"{_ELEVENLABS_BASE_URL}/{safe_voice_id}/stream"
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "audio/mpeg",
+        "xi-api-key": settings.elevenlabs_api_key,
+    }
+    body = {"text": payload.text, "model_id": settings.elevenlabs_model}
+    params = {"output_format": settings.elevenlabs_output_format}
 
     try:
-        with request.urlopen(upstream_request, timeout=timeout_seconds) as response:
-            content_type = response.headers.get("content-type", "audio/mpeg")
-            return SpeechAudio(content=response.read(), media_type=content_type)
-    except error.HTTPError as exc:
-        logger.warning(
-            "tts.upstream_http_error",
-            extra={
-                "event": "tts.upstream_http_error",
-                "status_code": exc.code,
-                "provider": "elevenlabs",
-            },
-        )
-        raise SpeechSynthesisError("ElevenLabs speech synthesis failed.") from exc
-    except (OSError, TimeoutError) as exc:
+        async with httpx.AsyncClient(timeout=settings.elevenlabs_timeout_seconds) as client:
+            response = await client.post(url, json=body, headers=headers, params=params)
+    except httpx.HTTPError as exc:
         logger.warning(
             "tts.upstream_request_error",
             extra={
@@ -98,3 +69,27 @@ def _post_elevenlabs_speech(
             },
         )
         raise SpeechSynthesisError("ElevenLabs speech synthesis failed.") from exc
+
+    if response.status_code >= 400:
+        # Surface the upstream failure body in the structured log so 402
+        # ("paid plan required"), 401 (bad key), and 422 (bad voice id) are
+        # diagnosable without re-running the request by hand. The body is
+        # truncated and the api key never leaves the request headers.
+        body_preview: str
+        try:
+            body_preview = response.text[:500]
+        except Exception:  # noqa: BLE001 - logging-only fallback.
+            body_preview = "<unreadable>"
+        logger.warning(
+            "tts.upstream_http_error",
+            extra={
+                "event": "tts.upstream_http_error",
+                "status_code": response.status_code,
+                "provider": "elevenlabs",
+                "body_preview": body_preview,
+            },
+        )
+        raise SpeechSynthesisError("ElevenLabs speech synthesis failed.")
+
+    media_type = response.headers.get("content-type", "audio/mpeg")
+    return SpeechAudio(content=response.content, media_type=media_type)

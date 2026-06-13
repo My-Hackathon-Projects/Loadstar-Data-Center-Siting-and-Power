@@ -42,11 +42,27 @@ def test_speech_uses_configured_elevenlabs_voice(
     get_settings.cache_clear()
     calls: list[dict[str, Any]] = []
 
-    def fake_post(**kwargs: Any) -> tts_service.SpeechAudio:
-        calls.append(kwargs)
+    async def fake_synthesize(payload: Any) -> tts_service.SpeechAudio:
+        from backend.api.core.config import get_settings as _get_settings
+
+        settings = _get_settings()
+        calls.append(
+            {
+                "text": payload.text,
+                "api_key": settings.elevenlabs_api_key,
+                "voice_id": settings.elevenlabs_voice_id,
+                "model": settings.elevenlabs_model,
+            }
+        )
         return tts_service.SpeechAudio(content=b"audio-bytes", media_type="audio/mpeg")
 
-    monkeypatch.setattr(tts_service, "_post_elevenlabs_speech", fake_post)
+    # Patch both the service-module reference AND the route's bound import; the
+    # route imported the symbol directly (`from ... import synthesize_fred_speech`)
+    # so module-level monkeypatch alone would not intercept the call.
+    monkeypatch.setattr(tts_service, "synthesize_fred_speech", fake_synthesize)
+    from backend.api.routers import agent as agent_router
+
+    monkeypatch.setattr(agent_router, "synthesize_fred_speech", fake_synthesize)
 
     client = TestClient(app)
     response = client.post("/agent/speech", json={"text": "Hello, Fred."})
