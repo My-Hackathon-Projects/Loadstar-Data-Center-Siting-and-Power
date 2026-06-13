@@ -1,7 +1,7 @@
 {
   "active_method": "transparent_composite",
   "artifact_version": "siting-model-metrics-v1",
-  "auc": 0.8,
+  "auc": 0.4,
   "countries": [
     "SE",
     "DE",
@@ -25,30 +25,30 @@
     "water_dist_km": 0.036364,
     "wind_cf": 0.063636
   },
-  "generated_at": "2026-06-13T09:41:53+00:00",
+  "generated_at": "2026-06-13T10:19:20+00:00",
   "label_summary": {
     "negative_count": 15,
     "negative_positive_ratio": 3.0,
     "negative_source": "deterministic_non_excluded_cell_sampling",
-    "osm_positive_cell_count": 5,
+    "osm_positive_cell_count": 4,
     "positive_count": 5,
     "positive_sources": [
       "curated_known_data_center_cell",
       "osm_known_data_center_proxy"
     ]
   },
-  "model_artifact_checksum_sha256": "d5b64e5d2d20494357afb938c744bbedff254839e6923a0a2335479c0e79e020",
+  "model_artifact_checksum_sha256": "b5d8050b397f2208f53a97b5c658b426b64a9a1084f0a040f2336a32e9946c7b",
   "precision_at_k": {
-    "p@1": 1.0,
-    "p@3": 0.6667,
-    "p@5": 0.8
+    "p@1": 0.0,
+    "p@3": 0.0,
+    "p@5": 0.2
   },
   "schema_version": "loadstar.siting_model.v1",
   "source_status": "fallback",
   "split_strategy": {
-    "heldout_count": 7,
+    "heldout_count": 4,
     "holdout_country": "IE",
     "method": "holdout_country",
-    "train_count": 13
+    "train_count": 16
   }
 }

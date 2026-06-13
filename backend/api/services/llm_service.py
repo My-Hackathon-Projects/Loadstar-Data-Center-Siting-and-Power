@@ -110,7 +110,7 @@ async def _try_openai(
             input=prompt,
             max_output_tokens=300,
         )
-    except Exception as exc:  # noqa: BLE001 - logged, fallback to template.
+    except Exception as exc:
         logger.warning(
             "llm.fallback",
             extra={

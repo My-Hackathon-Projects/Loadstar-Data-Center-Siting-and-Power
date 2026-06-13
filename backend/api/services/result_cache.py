@@ -32,7 +32,7 @@ from backend.api.core.config import get_settings
 logger = logging.getLogger("loadstar.cache")
 
 # Bound the in-process cache so a long-running demo cannot grow unbounded.
-# 256 entries comfortably covers the 280 MW × 7 layer × multiple workload
+# 256 entries comfortably covers the 280 MW x 7 layer x multiple workload
 # combinations a judge might explore during a rehearsal.
 _DEFAULT_LRU_MAX_SIZE = 256
 
@@ -110,14 +110,14 @@ class RedisResultCache:  # pragma: no cover - exercised when REDIS_URL is set.
         self._client.ping()
 
     def get(self, key: str) -> Any | None:
-        import pickle  # noqa: S403 - values are produced by us, not user input.
+        import pickle
 
         raw: Any = self._client.get(self._prefix + key)
         if raw is None:
             self._misses += 1
             return None
         self._hits += 1
-        return pickle.loads(raw)  # noqa: S301 - we control what we set.
+        return pickle.loads(raw)
 
     def set(self, key: str, value: Any) -> None:
         import pickle
@@ -136,7 +136,7 @@ def _build_cache(_factory: Callable[[], ResultCache] | None = None) -> ResultCac
         return LruResultCache()
     try:
         return RedisResultCache(redis_url)
-    except Exception as exc:  # noqa: BLE001 - logged + LRU fallback.
+    except Exception as exc:
         logger.warning(
             "result_cache.redis_unreachable",
             extra={

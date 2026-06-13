@@ -364,7 +364,7 @@ def _is_selected_detail_question(payload: AgentChatRequest, text: str) -> bool:
     return _contains_any(text, _DETAIL_INTENT_TERMS) or "tell me about" in text
 
 
-def _conversation_message(payload: AgentChatRequest, text: str) -> str:
+def _conversation_message(text: str) -> str:
     if _is_greeting(text) or "who are you" in text or "your name" in text:
         return FRED_INTRO
     if _contains_any(text, _THANKS_TERMS):
@@ -504,7 +504,7 @@ async def _try_openai_chat(
             input=prompt,
             max_output_tokens=300,
         )
-    except Exception as exc:  # noqa: BLE001 - logged, fall back to deterministic text.
+    except Exception as exc:
         logger.warning(
             "agent.fallback",
             extra={
@@ -759,7 +759,7 @@ async def _run_llm_agent(payload: AgentChatRequest) -> AgentChatResponse | None:
                     request = _build_search_request_from_args(payload, call["arguments"])
                     try:
                         engine_response = search_site_cells(request)
-                    except Exception as exc:  # noqa: BLE001 - bubble up via tool result.
+                    except Exception as exc:
                         tool_output = json.dumps({"error": type(exc).__name__})
                     else:
                         last_search_request = request
@@ -801,7 +801,7 @@ async def _run_llm_agent(payload: AgentChatRequest) -> AgentChatResponse | None:
                 # Force a final text reply by removing tools from the next call.
                 tools = None
 
-    except Exception as exc:  # noqa: BLE001 - logged, fall back to deterministic.
+    except Exception as exc:
         logger.warning(
             "agent.fallback",
             extra={
@@ -864,7 +864,7 @@ async def _deterministic_chat(payload: AgentChatRequest) -> AgentChatResponse:
         return AgentChatResponse(
             source="template",
             model=None,
-            message=_conversation_message(payload, text),
+            message=_conversation_message(text),
             action=AgentAction(type="none"),
             cache_key=build_cache_key(
                 "agent.chat.conversation",

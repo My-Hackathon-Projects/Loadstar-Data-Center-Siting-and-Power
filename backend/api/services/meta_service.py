@@ -91,7 +91,7 @@ def _check_postgres(database_url: str) -> HealthDependency:
         ):
             cursor.execute("SELECT 1")
             cursor.fetchone()
-    except Exception as exc:  # noqa: BLE001 - surfaced as a status string.
+    except Exception as exc:
         return HealthDependency(
             status="unreachable",
             detail=_safe_dependency_detail(database_url, exc),
@@ -118,7 +118,7 @@ def _check_redis(redis_url: str | None) -> HealthDependency:
             socket_timeout=_DEPENDENCY_TIMEOUT_SECONDS,
         )
         client.ping()
-    except Exception as exc:  # noqa: BLE001 - surfaced as a status string.
+    except Exception as exc:
         return HealthDependency(
             status="unreachable",
             detail=_safe_dependency_detail(redis_url, exc),

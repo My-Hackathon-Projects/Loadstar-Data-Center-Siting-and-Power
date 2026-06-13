@@ -115,7 +115,7 @@ def _model_outputs(
             earthengine_project=earthengine_project,
         )
         return records, heldout_predictions, "earth_engine", "alphaearth_random_forest", None, None
-    except Exception as exc:  # noqa: BLE001 - recorded as fallback evidence.
+    except Exception as exc:
         if not allow_fallback:
             raise
         records, heldout_predictions, source_status, active_method, fallback, _ = _fallback_outputs(

@@ -63,7 +63,7 @@ def fit_siting_model(
         )
     try:
         return _lightgbm_fit(vectors=vectors, examples=examples, dataset_summary=dataset_summary)
-    except Exception as exc:  # noqa: BLE001 - recorded as model fallback evidence.
+    except Exception as exc:
         return _fallback_fit(
             vectors=vectors,
             examples=examples,

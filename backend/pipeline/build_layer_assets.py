@@ -13,11 +13,13 @@ When an overlay grows past ~5 MB or ~1000 features, regenerate as
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Annotated
 
 import typer
 
+from backend.api.repositories.site_repository import site_repository
 from backend.api.services.meta_service import get_assumptions
 from backend.api.services.site_service import ALLOWED_LAYERS, get_layer
 
@@ -50,6 +52,23 @@ def run_assumptions_asset(output_dir: Path = DATA_OUTPUT_DIR) -> Path:
     return path
 
 
+def run_sites_asset(output_dir: Path = DATA_OUTPUT_DIR) -> Path:
+    """Write the merged site collection (fixture base + pipeline overlays).
+
+    The frontend `sites.json` is what the local `siteEngine` ranks against.
+    Writing the same merged view the API serves keeps the local engine in
+    parity with the backend ranking, which the `siteEngine.test.ts` parity
+    test asserts cell-for-cell.
+    """
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    path = output_dir / "sites.json"
+    sites = list(site_repository.list_sites())
+    payload = [site.model_dump(mode="json") for site in sites]
+    path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    return path
+
+
 app = typer.Typer(add_completion=False, help="Build static map-layer assets for the SPA.")
 
 
@@ -64,10 +83,12 @@ def main(
 
     paths = run_layer_assets(output_dir=output_dir)
     assumptions_path = run_assumptions_asset()
+    sites_path = run_sites_asset()
     typer.echo(f"Wrote {len(paths)} layer assets under {output_dir}")
     for path in paths:
         typer.echo(f"- {path.relative_to(ROOT_DIR)}")
     typer.echo(f"- {assumptions_path.relative_to(ROOT_DIR)}")
+    typer.echo(f"- {sites_path.relative_to(ROOT_DIR)}")
 
 
 if __name__ == "__main__":

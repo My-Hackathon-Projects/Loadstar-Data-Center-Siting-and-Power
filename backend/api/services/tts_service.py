@@ -78,7 +78,7 @@ async def synthesize_fred_speech(payload: FredSpeechRequest) -> SpeechAudio:
         body_preview: str
         try:
             body_preview = response.text[:500]
-        except Exception:  # noqa: BLE001 - logging-only fallback.
+        except Exception:
             body_preview = "<unreadable>"
         logger.warning(
             "tts.upstream_http_error",

@@ -232,11 +232,11 @@ def _records(payload: dict[str, object]) -> list[dict[str, object]]:
     raw = payload.get("records")
     if not isinstance(raw, list):
         return []
-    records: list[dict[str, object]] = []
-    for item in cast(list[object], raw):
-        if isinstance(item, dict):
-            records.append(cast(dict[str, object], item))
-    return records
+    return [
+        cast(dict[str, object], item)
+        for item in cast(list[object], raw)
+        if isinstance(item, dict)
+    ]
 
 
 def _payload_status(payload: dict[str, object]) -> dict[str, object]:

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import asdict
+from itertools import pairwise
 
 from backend.engine.contracts import SiteFeature
 from backend.pipeline._helpers import (
@@ -31,7 +32,7 @@ def network_lines(sites: Sequence[SiteFeature]) -> list[NetworkLine]:
             (site for site in sites if site.country_code == country),
             key=lambda site: site.region_name,
         )
-        for left, right in zip(country_sites, country_sites[1:], strict=False):
+        for left, right in pairwise(country_sites):
             congestion = (left.congestion_index + right.congestion_index) / 2
             lines.append(
                 NetworkLine(

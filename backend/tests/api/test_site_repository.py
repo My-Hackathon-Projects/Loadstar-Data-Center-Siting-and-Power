@@ -57,7 +57,13 @@ def test_repository_loads_pipeline_records_when_artifact_present(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    """When the artifact exists, the trained values reach the API."""
+    """When the artifact exists, the trained values reach the API.
+
+    Repository semantics: the fixture base is preserved (so the static map
+    layers cover the full continent) and pipeline records overlay on
+    matching `cell_id`s. We only assert the override happened on the cell
+    we wrote, not that the full list shrinks to one entry.
+    """
 
     record = FEATURE_COLLECTION[0].model_dump()
     record["lightgbm_score"] = 0.4242
@@ -69,13 +75,15 @@ def test_repository_loads_pipeline_records_when_artifact_present(
     )
 
     reloaded = _reload_repo(monkeypatch, tmp_path)
-    sites = list(reloaded.site_repository.list_sites())
+    site = reloaded.site_repository.get_site(record["cell_id"])
 
-    assert len(sites) == 1
-    site = sites[0]
+    assert site is not None
     assert site.lightgbm_score == 0.4242
     assert site.buildable_fraction == 0.4343
     assert site.dc_similarity == 0.5151
+    # Other fixture cells must remain available.
+    other = reloaded.site_repository.get_site(FEATURE_COLLECTION[1].cell_id)
+    assert other is not None
 
 
 def test_repository_falls_back_when_artifact_is_malformed(
@@ -113,9 +121,15 @@ def test_repository_skips_invalid_records_but_keeps_valid_ones(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    """Bad records are dropped record-by-record, not whole-file."""
+    """Bad records are dropped record-by-record, not whole-file.
+
+    With the merge semantics, the fixture base remains intact and only the
+    valid pipeline record overlays. The two malformed records must not
+    crash the load nor pollute any other fixture cell's values.
+    """
 
     valid = FEATURE_COLLECTION[0].model_dump()
+    valid["lightgbm_score"] = 0.123
     invalid_missing_field = {"cell_id": "broken", "country_code": "SE"}
     invalid_out_of_range = FEATURE_COLLECTION[1].model_dump()
     invalid_out_of_range["lightgbm_score"] = 5.5  # violates Field(ge=0, le=1)
@@ -127,9 +141,19 @@ def test_repository_skips_invalid_records_but_keeps_valid_ones(
     )
 
     reloaded = _reload_repo(monkeypatch, tmp_path)
-    sites = list(reloaded.site_repository.list_sites())
 
-    assert [s.cell_id for s in sites] == [valid["cell_id"]]
+    # The good record overrode the matching fixture entry...
+    overridden = reloaded.site_repository.get_site(valid["cell_id"])
+    assert overridden is not None
+    assert overridden.lightgbm_score == 0.123
+
+    # ...the malformed-out-of-range record left its fixture cell intact...
+    untouched = reloaded.site_repository.get_site(FEATURE_COLLECTION[1].cell_id)
+    assert untouched is not None
+    assert untouched.lightgbm_score == FEATURE_COLLECTION[1].lightgbm_score
+
+    # ...and the missing-field record did not appear as a phantom site.
+    assert reloaded.site_repository.get_site("broken") is None
 
 
 def test_repository_get_site_returns_pipeline_record(

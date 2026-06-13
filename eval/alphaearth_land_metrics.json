@@ -11,136 +11,189 @@
   "deterministic_seed": 20260612,
   "earthengine_error": null,
   "fallback": "Earth Engine project or package unavailable; using fixture land proxy.",
-  "generated_at": "2026-06-13T09:41:46+00:00",
+  "generated_at": "2026-06-13T10:19:20+00:00",
   "heldout_labels": [
     {
-      "buildable_label": 1,
-      "buildable_prediction": 0.75,
-      "cell_id": "851f204ffffffff",
+      "buildable_label": 0,
+      "buildable_prediction": 0.41,
+      "cell_id": "851faeabfffffff",
       "dc_label": 1,
-      "dc_prediction": 0.76,
-      "label_id": "851f204ffffffff:center",
-      "source_method": "fixture_land_proxy"
-    },
-    {
-      "buildable_label": 0,
-      "buildable_prediction": 0.75,
-      "cell_id": "851f204ffffffff",
-      "dc_label": 0,
-      "dc_prediction": 0.76,
-      "label_id": "851f204ffffffff:unsuitable-offset",
-      "source_method": "fixture_land_proxy"
-    },
-    {
-      "buildable_label": 0,
-      "buildable_prediction": 0.52,
-      "cell_id": "851f8d57fffffff",
-      "dc_label": 0,
-      "dc_prediction": 0.72,
-      "label_id": "851f8d57fffffff:unsuitable-offset",
+      "dc_prediction": 0.85,
+      "label_id": "851faeabfffffff:center",
       "source_method": "fixture_land_proxy"
     },
     {
       "buildable_label": 0,
       "buildable_prediction": 0.58,
-      "cell_id": "85195c53fffffff",
+      "cell_id": "851f15affffffff",
       "dc_label": 0,
-      "dc_prediction": 0.61,
-      "label_id": "85195c53fffffff:unsuitable-offset",
+      "dc_prediction": 0.75,
+      "label_id": "851f15affffffff:unsuitable-offset",
+      "source_method": "fixture_land_proxy"
+    },
+    {
+      "buildable_label": 0,
+      "buildable_prediction": 0.57,
+      "cell_id": "851f8d47fffffff",
+      "dc_label": 0,
+      "dc_prediction": 0.65,
+      "label_id": "851f8d47fffffff:unsuitable-offset",
+      "source_method": "fixture_land_proxy"
+    },
+    {
+      "buildable_label": 1,
+      "buildable_prediction": 0.7,
+      "cell_id": "85182e5bfffffff",
+      "dc_label": 0,
+      "dc_prediction": 0.49,
+      "label_id": "85182e5bfffffff:center",
+      "source_method": "fixture_land_proxy"
+    },
+    {
+      "buildable_label": 1,
+      "buildable_prediction": 0.71,
+      "cell_id": "8508c683fffffff",
+      "dc_label": 0,
+      "dc_prediction": 0.53,
+      "label_id": "8508c683fffffff:center",
+      "source_method": "fixture_land_proxy"
+    },
+    {
+      "buildable_label": 0,
+      "buildable_prediction": 0.41,
+      "cell_id": "85088667fffffff",
+      "dc_label": 1,
+      "dc_prediction": 0.83,
+      "label_id": "85088667fffffff:center",
       "source_method": "fixture_land_proxy"
     }
   ],
   "heldout_metrics": {
-    "buildable_accuracy": 0.25,
-    "dc_accuracy": 0.25,
-    "heldout_count": 4
+    "buildable_accuracy": 0.6667,
+    "dc_accuracy": 0.5,
+    "heldout_count": 6
   },
   "label_summary": {
-    "buildable_negative_count": 15,
-    "buildable_positive_count": 5,
-    "dc_negative_count": 15,
-    "dc_positive_count": 5,
-    "heldout_count": 4,
+    "buildable_negative_count": 18,
+    "buildable_positive_count": 12,
+    "dc_negative_count": 26,
+    "dc_positive_count": 4,
+    "heldout_count": 6,
     "label_sources": [
       "fixture_cell_center_proxy",
       "fixture_unsuitable_offset_proxy"
     ],
-    "total_count": 20,
-    "train_count": 16
+    "total_count": 30,
+    "train_count": 24
   },
   "manual_map_checks": [
     {
-      "cell_id": "851f25d7fffffff",
-      "country_code": "SE",
+      "cell_id": "851f1d4bfffffff",
+      "country_code": "DE",
       "notes": "Fallback fixture proxy; manual basemap review still required.",
-      "region_name": "Lulea / Boden",
+      "region_name": "Berlin",
       "status": "not_performed"
     },
     {
-      "cell_id": "851f2533fffffff",
-      "country_code": "SE",
+      "cell_id": "851fa52bfffffff",
+      "country_code": "DE",
       "notes": "Fallback fixture proxy; manual basemap review still required.",
-      "region_name": "Sundsvall",
+      "region_name": "Dusseldorf",
       "status": "not_performed"
     },
     {
-      "cell_id": "851f2a6bfffffff",
-      "country_code": "SE",
-      "notes": "Fallback fixture proxy; manual basemap review still required.",
-      "region_name": "Stockholm North",
-      "status": "not_performed"
-    },
-    {
-      "cell_id": "851f204ffffffff",
-      "country_code": "SE",
-      "notes": "Fallback fixture proxy; manual basemap review still required.",
-      "region_name": "Umea",
-      "status": "not_performed"
-    },
-    {
-      "cell_id": "851fa62bfffffff",
+      "cell_id": "851faeabfffffff",
       "country_code": "DE",
       "notes": "Fallback fixture proxy; manual basemap review still required.",
       "region_name": "Frankfurt West",
       "status": "not_performed"
     },
     {
-      "cell_id": "851f8d57fffffff",
+      "cell_id": "851f15affffffff",
       "country_code": "DE",
       "notes": "Fallback fixture proxy; manual basemap review still required.",
       "region_name": "Hamburg South",
       "status": "not_performed"
     },
     {
-      "cell_id": "851fa1cffffffff",
+      "cell_id": "851f8d47fffffff",
       "country_code": "DE",
       "notes": "Fallback fixture proxy; manual basemap review still required.",
       "region_name": "Munich North",
       "status": "not_performed"
     },
     {
-      "cell_id": "85195da7fffffff",
+      "cell_id": "851faa7bfffffff",
+      "country_code": "DE",
+      "notes": "Fallback fixture proxy; manual basemap review still required.",
+      "region_name": "Stuttgart",
+      "status": "not_performed"
+    },
+    {
+      "cell_id": "85182a3bfffffff",
+      "country_code": "IE",
+      "notes": "Fallback fixture proxy; manual basemap review still required.",
+      "region_name": "Cork North",
+      "status": "not_performed"
+    },
+    {
+      "cell_id": "85182c17fffffff",
       "country_code": "IE",
       "notes": "Fallback fixture proxy; manual basemap review still required.",
       "region_name": "Dublin West",
       "status": "not_performed"
     },
     {
-      "cell_id": "85195c53fffffff",
+      "cell_id": "85182e5bfffffff",
       "country_code": "IE",
       "notes": "Fallback fixture proxy; manual basemap review still required.",
       "region_name": "Galway East",
       "status": "not_performed"
     },
     {
-      "cell_id": "85195c8ffffffff",
-      "country_code": "IE",
+      "cell_id": "851f25abfffffff",
+      "country_code": "SE",
       "notes": "Fallback fixture proxy; manual basemap review still required.",
-      "region_name": "Cork North",
+      "region_name": "Gothenburg",
+      "status": "not_performed"
+    },
+    {
+      "cell_id": "8508c683fffffff",
+      "country_code": "SE",
+      "notes": "Fallback fixture proxy; manual basemap review still required.",
+      "region_name": "Lulea / Boden",
+      "status": "not_performed"
+    },
+    {
+      "cell_id": "851f05bbfffffff",
+      "country_code": "SE",
+      "notes": "Fallback fixture proxy; manual basemap review still required.",
+      "region_name": "Malmo",
+      "status": "not_performed"
+    },
+    {
+      "cell_id": "85088667fffffff",
+      "country_code": "SE",
+      "notes": "Fallback fixture proxy; manual basemap review still required.",
+      "region_name": "Stockholm North",
+      "status": "not_performed"
+    },
+    {
+      "cell_id": "8508a807fffffff",
+      "country_code": "SE",
+      "notes": "Fallback fixture proxy; manual basemap review still required.",
+      "region_name": "Sundsvall",
+      "status": "not_performed"
+    },
+    {
+      "cell_id": "8508f62ffffffff",
+      "country_code": "SE",
+      "notes": "Fallback fixture proxy; manual basemap review still required.",
+      "region_name": "Umea",
       "status": "not_performed"
     }
   ],
-  "output_checksum_sha256": "15cb7ac061b16be823c0ff82c003fcca26438e76cfb824ee8da8c1adb4fa3ee4",
+  "output_checksum_sha256": "02d9b2570940dba4525d6b6fb9c807a286e3ed5089534abd90df4a6a84b3cc63",
   "random_forest": {
     "embedding_band_count": 64,
     "seed": 20260612,

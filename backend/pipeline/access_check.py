@@ -44,7 +44,7 @@ def _curl_json(
     for key, value in (headers or {}).items():
         command.extend(["-H", f"{key}: {value}"])
     command.append(url)
-    process = subprocess.run(command, text=True, capture_output=True)
+    process = subprocess.run(command, text=True, capture_output=True, check=False)
     if process.returncode != 0:
         return 0, {"error": process.stderr.strip() or "curl failed"}
     body, _, status_text = process.stdout.rpartition("\n")
@@ -74,6 +74,7 @@ def _curl_head(url: str, timeout: int = 20) -> tuple[int, str]:
         ],
         text=True,
         capture_output=True,
+        check=False,
     )
     if process.returncode != 0:
         return 0, process.stderr.strip() or "curl failed"
@@ -251,7 +252,7 @@ def check_earth_engine() -> SourceDecision:
                 ),
             )
         raise RuntimeError("Earth Engine sample returned no feature.")
-    except Exception as exc:  # noqa: BLE001 - surfaced as decision-record evidence.
+    except Exception as exc:
         return SourceDecision(
             source="Google Earth Engine / AlphaEarth",
             status="blocked",
@@ -287,17 +288,17 @@ def render_markdown(decisions: list[SourceDecision]) -> str:
     row_template = (
         "| {source} | `{status}` | {check} | {evidence} | {downstream_implication} | {fallback} |"
     )
-    for decision in decisions:
-        lines.append(
-            row_template.format(
-                source=decision.source,
-                status=decision.status,
-                check=decision.check.replace("|", "\\|"),
-                evidence=decision.evidence.replace("|", "\\|"),
-                downstream_implication=decision.downstream_implication.replace("|", "\\|"),
-                fallback=(decision.fallback or "").replace("|", "\\|"),
-            )
+    lines.extend(
+        row_template.format(
+            source=decision.source,
+            status=decision.status,
+            check=decision.check.replace("|", "\\|"),
+            evidence=decision.evidence.replace("|", "\\|"),
+            downstream_implication=decision.downstream_implication.replace("|", "\\|"),
+            fallback=(decision.fallback or "").replace("|", "\\|"),
         )
+        for decision in decisions
+    )
     lines.append("")
     return "\n".join(lines)
 

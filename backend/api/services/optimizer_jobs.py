@@ -108,7 +108,7 @@ def run_supply_mix_job(job_id: str, request: OptimizeRequest) -> None:
     )
     try:
         response = optimize_site_supply(request)
-    except Exception as exc:  # noqa: BLE001 - logged + persisted as failed status.
+    except Exception as exc:
         elapsed_ms = round((time.perf_counter() - started_perf) * 1000, 3)
         message = str(exc) or type(exc).__name__
         logger.warning(
@@ -257,7 +257,7 @@ def _select_row(database_url: str, *, job_id: str) -> dict[str, Any] | None:
         "request_id",
     )
     query = (
-        f"SELECT {', '.join(columns)} FROM optimization_runs "  # noqa: S608
+        f"SELECT {', '.join(columns)} FROM optimization_runs "
         "WHERE run_id = %s"
     )
     with get_connection(database_url) as connection, connection.cursor() as cursor:

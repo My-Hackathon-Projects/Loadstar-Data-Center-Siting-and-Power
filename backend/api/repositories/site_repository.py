@@ -172,19 +172,47 @@ class SiteRepository:
 
 
 def _build_default_repository() -> SiteRepository:
-    """Construct the singleton repository at import time."""
+    """Construct the singleton repository at import time.
+
+    Strategy: start from the curated `FEATURE_COLLECTION` (the canonical set
+    of cells the demo covers) and overlay any pipeline-trained values onto
+    matching cells. Pipeline records that do not correspond to a fixture
+    cell are appended. This way trained `lightgbm_score`,
+    `buildable_fraction`, and `dc_similarity` reach scoring for the cells
+    the pipeline ran on, while every other cell still has the curated
+    fallback values — and the static map layers cover the full continent.
+    """
 
     pipeline_sites = _load_pipeline_records(_pipeline_artifact_path())
-    if pipeline_sites is not None:
-        return SiteRepository(pipeline_sites)
+    if pipeline_sites is None:
+        logger.info(
+            "repository.fixture_active",
+            extra={
+                "event": "repository.fixture_active",
+                "site_count": len(FEATURE_COLLECTION),
+            },
+        )
+        return SiteRepository(FEATURE_COLLECTION)
+
+    pipeline_by_cell = {site.cell_id: site for site in pipeline_sites}
+    merged: list[SiteFeature] = [
+        pipeline_by_cell.get(fixture.cell_id, fixture) for fixture in FEATURE_COLLECTION
+    ]
+    fixture_ids = {fixture.cell_id for fixture in FEATURE_COLLECTION}
+    extras = [site for site in pipeline_sites if site.cell_id not in fixture_ids]
+    merged.extend(extras)
+    overridden = sum(1 for fixture in FEATURE_COLLECTION if fixture.cell_id in pipeline_by_cell)
     logger.info(
-        "repository.fixture_active",
+        "repository.pipeline_overlay",
         extra={
-            "event": "repository.fixture_active",
-            "site_count": len(FEATURE_COLLECTION),
+            "event": "repository.pipeline_overlay",
+            "fixture_count": len(FEATURE_COLLECTION),
+            "pipeline_count": len(pipeline_sites),
+            "overridden": overridden,
+            "extras": len(extras),
         },
     )
-    return SiteRepository(FEATURE_COLLECTION)
+    return SiteRepository(merged)
 
 
 # Backwards-compatible alias so existing imports keep working unchanged.

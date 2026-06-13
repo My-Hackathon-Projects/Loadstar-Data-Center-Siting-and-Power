@@ -113,7 +113,7 @@ def _query(
     country: str | None,
 ) -> list[sqlite3.Row]:
     columns = ", ".join(_SELECT_COLUMNS)
-    sql = f"SELECT {columns} FROM source_artifacts"  # noqa: S608 - column list is constant.
+    sql = f"SELECT {columns} FROM source_artifacts"
     clauses: list[str] = []
     params: list[Any] = []
     if artifact_name:
