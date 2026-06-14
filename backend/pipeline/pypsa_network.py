@@ -450,7 +450,10 @@ def _build_geojson_payload(
 
 def write_geojson(path: Path, payload: dict[str, Any]) -> str:
     path.parent.mkdir(parents=True, exist_ok=True)
-    content = json.dumps(payload, indent=2, sort_keys=True) + "\n"
+    # Compact: this overlay is a multi-megabyte machine artifact committed for
+    # the Vercel static path (the SPA reads it, never edits it). `sort_keys`
+    # keeps regeneration byte-deterministic so the committed file stays stable.
+    content = json.dumps(payload, separators=(",", ":"), sort_keys=True) + "\n"
     path.write_text(content, encoding="utf-8")
     return hashlib.sha256(content.encode("utf-8")).hexdigest()
 
