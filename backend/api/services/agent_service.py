@@ -45,38 +45,110 @@ from backend.engine.contracts import (
 
 logger = logging.getLogger("loadstar.agent")
 
-# Country names/adjectives mapped to the ISO-2 codes `country_filter` matches.
-# Bare two-letter codes are intentionally omitted; words like "no" must not be
-# read as Norway.
+# ISO-2 code to display name for every country in the curated dataset.
+_COUNTRY_NAMES: dict[str, str] = {
+    "AT": "Austria",
+    "BE": "Belgium",
+    "BG": "Bulgaria",
+    "CH": "Switzerland",
+    "CZ": "Czechia",
+    "DE": "Germany",
+    "DK": "Denmark",
+    "EE": "Estonia",
+    "ES": "Spain",
+    "FI": "Finland",
+    "FR": "France",
+    "GB": "United Kingdom",
+    "GR": "Greece",
+    "HR": "Croatia",
+    "HU": "Hungary",
+    "IE": "Ireland",
+    "IS": "Iceland",
+    "IT": "Italy",
+    "LT": "Lithuania",
+    "LU": "Luxembourg",
+    "LV": "Latvia",
+    "NL": "Netherlands",
+    "NO": "Norway",
+    "PL": "Poland",
+    "PT": "Portugal",
+    "RO": "Romania",
+    "RS": "Serbia",
+    "SE": "Sweden",
+    "SI": "Slovenia",
+    "SK": "Slovakia",
+}
+
+# Country names and adjectives mapped to the ISO-2 codes `country_filter` matches.
+# Bare two-letter codes are intentionally omitted (a word like "no" must not be
+# read as Norway); "uk" is the one safe abbreviation because it is never an
+# ordinary English word.
 _COUNTRY_ALIASES: dict[str, str] = {
-    "sweden": "SE",
-    "swedish": "SE",
+    "austria": "AT",
+    "austrian": "AT",
+    "belgium": "BE",
+    "belgian": "BE",
+    "bulgaria": "BG",
+    "bulgarian": "BG",
+    "switzerland": "CH",
+    "swiss": "CH",
+    "czechia": "CZ",
+    "czech republic": "CZ",
+    "czech": "CZ",
     "germany": "DE",
     "german": "DE",
-    "ireland": "IE",
-    "irish": "IE",
-    "norway": "NO",
-    "norwegian": "NO",
-    "finland": "FI",
-    "finnish": "FI",
     "denmark": "DK",
     "danish": "DK",
+    "estonia": "EE",
+    "estonian": "EE",
+    "spain": "ES",
+    "spanish": "ES",
+    "finland": "FI",
+    "finnish": "FI",
     "france": "FR",
     "french": "FR",
+    "united kingdom": "GB",
+    "great britain": "GB",
+    "britain": "GB",
+    "british": "GB",
+    "england": "GB",
+    "uk": "GB",
+    "greece": "GR",
+    "greek": "GR",
+    "croatia": "HR",
+    "croatian": "HR",
+    "hungary": "HU",
+    "hungarian": "HU",
+    "ireland": "IE",
+    "irish": "IE",
+    "iceland": "IS",
+    "icelandic": "IS",
+    "italy": "IT",
+    "italian": "IT",
+    "lithuania": "LT",
+    "lithuanian": "LT",
+    "luxembourg": "LU",
+    "latvia": "LV",
+    "latvian": "LV",
     "netherlands": "NL",
     "dutch": "NL",
     "holland": "NL",
-}
-
-_COUNTRY_NAMES: dict[str, str] = {
-    "SE": "Sweden",
-    "DE": "Germany",
-    "IE": "Ireland",
-    "NO": "Norway",
-    "FI": "Finland",
-    "DK": "Denmark",
-    "FR": "France",
-    "NL": "Netherlands",
+    "norway": "NO",
+    "norwegian": "NO",
+    "poland": "PL",
+    "polish": "PL",
+    "portugal": "PT",
+    "portuguese": "PT",
+    "romania": "RO",
+    "romanian": "RO",
+    "serbia": "RS",
+    "serbian": "RS",
+    "sweden": "SE",
+    "swedish": "SE",
+    "slovenia": "SI",
+    "slovenian": "SI",
+    "slovakia": "SK",
+    "slovak": "SK",
 }
 
 _SUPPORTED_COUNTRY_CODES: tuple[str, ...] = tuple(_COUNTRY_NAMES.keys())
@@ -166,41 +238,49 @@ FRED_INTRO = "Hello, my name is Fred. How can I help you today?"
 
 # LLM tool-calling configuration.
 _MAX_TOOL_ITERATIONS = 2
-_LLM_TIMEOUT_S = 12.0
-_LLM_MAX_OUTPUT_TOKENS = 400
+_LLM_TIMEOUT_S = 30.0
+_LLM_MAX_OUTPUT_TOKENS = 2048
 
 _FRED_SYSTEM_PROMPT = (
     "You are Fred, a senior data-center siting analyst embedded in the "
     "Loadstar dashboard. You help users decide where to build AI campuses "
-    "across Europe.\n\n"
-    "Tools:\n"
-    "- search_sites: ALWAYS call this when the user asks where to build, the "
-    "cheapest/greenest/biggest site, mentions a country, an MW target, or any "
-    "comparison across sites. Never describe siting numbers from memory.\n"
-    "- explain_site: call when the user asks for details, tradeoffs, or risk "
-    "on a specific cell and a selected_cell_id is available.\n\n"
-    "Multi-turn refinement (CRITICAL): when the user replies with a short "
-    "follow-up (a single country name, 'what about Germany?', 'try 100 MW', "
-    "'cheaper instead', etc.), treat it as a REFINEMENT of the most recent "
-    "search you ran in this conversation. Reuse the prior power_mw, "
-    "workload_type, and emphasis values unless the user explicitly changes "
-    "them, and only override the dimensions the user actually mentioned. Do "
-    "not silently fall back to defaults across turns.\n\n"
-    "Numeric faithfulness: any price, carbon intensity, headroom, or score "
-    "in your reply MUST come verbatim from a tool result you saw in this "
-    "turn. If you have no tool result, do NOT invent numbers — ask a "
-    "clarifying question or call search_sites.\n\n"
-    "Formatting: the chat panel renders Markdown. Use **bold** to highlight "
-    "site names and key labels. When listing two or more candidate sites, "
-    "use a numbered list and put each site's facts on indented bullet lines "
-    "(e.g. '- Carbon: 24 g/kWh', '- Price: €34/MWh', '- Headroom: 540 MW'). "
-    "When a single site or a non-list answer is best, write a tight paragraph "
-    "instead. Keep replies concise — at most ~120 words total. Begin "
-    "naturally with 'Sure' when answering a request. End with one concrete "
-    "next step (e.g. 'Flying the map there now.') when a search_sites call "
-    "returned candidates.\n\n"
-    "If the user just greets you, thanks you, or asks how the product works, "
-    "reply briefly without calling any tool."
+    "across Europe, and you explain your reasoning like an expert advisor.\n\n"
+    "TOOLS\n"
+    "- search_sites: ALWAYS call this when the user asks where to build, for the "
+    "cheapest/greenest/biggest site, mentions a country or region, an MW target, "
+    "or any comparison across sites. Never state siting numbers from memory.\n"
+    "- explain_site: call when the user asks for details, tradeoffs, or risk on a "
+    "specific cell and a selected_cell_id is available.\n\n"
+    "MULTI-TURN REFINEMENT (critical): when the user sends a short follow-up (a "
+    "country name, 'what about Germany?', 'try 100 MW', 'cheaper instead'), treat "
+    "it as a REFINEMENT of your most recent search. Reuse the prior power_mw, "
+    "workload_type, and emphasis unless the user changes them; only override what "
+    "they actually mention. Never silently revert to defaults across turns.\n\n"
+    "NUMERIC FAITHFULNESS: every price, carbon intensity, headroom, distance, or "
+    "score in your reply MUST come verbatim from a tool result you received this "
+    "turn. Never invent or estimate numbers. With no tool result, call "
+    "search_sites or ask a clarifying question.\n\n"
+    "RESPONSE STYLE: be thorough and genuinely useful, not terse. The chat panel "
+    "renders Markdown, so format for fast scanning:\n"
+    "- Open with one sentence framing the result (the load, any country filter, "
+    "how many candidates ranked).\n"
+    "- Then a numbered list of the top candidates (up to 6). For each, a bold "
+    "heading like '**1. Lulea, Sweden - 82% match**', followed by indented "
+    "bullets that use the tool numbers, for example:\n"
+    "  - Carbon: 24 g/kWh\n"
+    "  - Price: EUR 42/MWh\n"
+    "  - Headroom: 540 MW\n"
+    "  - Grid: 6 km to HV substation\n"
+    "  - Connectivity: 12 km to fiber\n"
+    "  - Why it ranks here: its strongest factors from score_breakdown.\n"
+    "- Close with a short recommendation that names the single best pick and its "
+    "main tradeoff, then a next step ('Flying the map to Lulea now.').\n"
+    "Write complete, informative bullets. Do not pad, but do not be one-line "
+    "terse. Write 'EUR' rather than a currency symbol.\n\n"
+    "For a single-site question, write a tight, well-structured paragraph or a "
+    "short bulleted profile instead of a numbered list.\n"
+    "If the user only greets you, thanks you, or asks how the product works, "
+    "reply in one or two friendly sentences without calling any tool."
 )
 
 
@@ -208,8 +288,9 @@ _SEARCH_SITES_DECLARATION: dict[str, Any] = {
     "name": "search_sites",
     "description": (
         "Run the live siting engine to rank candidate cells for a "
-        "data-center build. Returns real prices, carbon intensity, and grid "
-        "headroom; you must use those numbers verbatim in your reply."
+        "data-center build. Returns, per cell, real price, carbon intensity, "
+        "grid headroom, distance to HV substation and to fiber, buildable-land "
+        "fraction, and a per-factor score_breakdown. Use those numbers verbatim."
     ),
     "parameters": {
         "type": "object",
@@ -584,17 +665,27 @@ def _summarize_search_for_tool(
     """
 
     top_results: list[dict[str, Any]] = []
-    for ranked in response.results[:5]:
+    for ranked in response.results[:8]:
         site = ranked.site
         top_results.append(
             {
                 "cell_id": site.cell_id,
                 "region_name": site.region_name,
+                "country": _COUNTRY_NAMES.get(site.country_code, site.country_code),
                 "country_code": site.country_code,
                 "composite_score_pct": round(ranked.composite_score * 100, 1),
                 "mean_price_eur_mwh": round(site.mean_price_eur_mwh, 1),
                 "carbon_intensity_g_kwh": round(site.carbon_intensity_g_kwh, 1),
                 "headroom_mw": round(site.headroom_mw, 1),
+                "dist_hv_substation_km": round(site.dist_hv_substation_km, 1),
+                "dist_fiber_km": round(site.dist_fiber_km, 1),
+                "buildable_fraction": round(site.buildable_fraction, 2),
+                # Per-factor 0..1 scores so the model can explain *why* a cell
+                # ranks where it does (e.g. "leads on carbon and price").
+                "score_breakdown": {
+                    factor: round(value, 2)
+                    for factor, value in ranked.score_breakdown.items()
+                },
             }
         )
     payload: dict[str, Any] = {
@@ -608,6 +699,21 @@ def _summarize_search_for_tool(
         "top_results": top_results,
     }
     return payload
+
+
+def _thinking_config(types: Any) -> Any:
+    """Low-latency thinking config, tolerant of google-genai version drift.
+
+    The configured model only runs in thinking mode, and its default budget is
+    slow enough to blow the per-call timeout. "low" keeps the reasoning quality
+    while roughly thirding the latency. Returns None when the installed SDK does
+    not expose `thinking_level`, so the call still succeeds at the default budget.
+    """
+
+    try:
+        return types.ThinkingConfig(thinking_level="low")
+    except Exception:
+        return None
 
 
 def _build_gemini_contents(payload: AgentChatRequest, types: Any) -> list[Any]:
@@ -724,6 +830,11 @@ async def _run_llm_agent(payload: AgentChatRequest) -> AgentChatResponse | None:
             config_kwargs: dict[str, Any] = {
                 "system_instruction": _FRED_SYSTEM_PROMPT,
                 "max_output_tokens": _LLM_MAX_OUTPUT_TOKENS,
+                # The configured model is a thinking model. At its default budget
+                # a single turn took ~18s, blowing the per-call timeout and
+                # forcing the deterministic fallback. "low" keeps the quality but
+                # roughly thirds the latency so both tool turns finish in time.
+                "thinking_config": _thinking_config(types),
             }
             if tools_enabled:
                 config_kwargs["tools"] = [

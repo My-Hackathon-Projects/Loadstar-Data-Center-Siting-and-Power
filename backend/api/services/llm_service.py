@@ -23,14 +23,17 @@ from backend.api.services.cache_keys import build_cache_key
 from backend.engine.contracts import ExplainRequest, ExplainResponse, SiteFeature
 
 logger = logging.getLogger("loadstar.llm")
-_GEMINI_TIMEOUT_S = 12.0
+_GEMINI_TIMEOUT_S = 30.0
+_GEMINI_MAX_OUTPUT_TOKENS = 1024
 
 _PROMPT_TEMPLATE = (
-    "You are a senior data-center siting analyst. In ONE paragraph (max 110 words), "
-    "explain to a hackathon judge why the candidate cell below is or is not a strong "
-    "fit for a {power_mw:.0f} MW AI {workload_type} campus. Reference the headroom, "
-    "carbon intensity, mean price, buildable-land share, and the LightGBM viability "
-    "score. End with a concrete next step the user should take in the Pareto panel.\n\n"
+    "You are a senior data-center siting analyst writing for a hackathon judge. In "
+    "two short Markdown paragraphs (about 150 words total), explain why the candidate "
+    "cell below is or is not a strong fit for a {power_mw:.0f} MW AI {workload_type} "
+    "campus. Use **bold** for the cell name and key figures. Reference the headroom, "
+    "carbon intensity, mean price, buildable-land share, LightGBM viability, fiber "
+    "distance, and congestion, and call out the clearest strength and the clearest "
+    "risk. End with a concrete next step the user should take in the Pareto panel.\n\n"
     "Cell: {region_name} ({country_code}, cell_id={cell_id})\n"
     "Headroom: {headroom_mw:.0f} MW\n"
     "Mean price: {mean_price_eur_mwh:.0f} EUR/MWh\n"
@@ -40,6 +43,20 @@ _PROMPT_TEMPLATE = (
     "Fiber distance: {dist_fiber_km:.1f} km\n"
     "Congestion index: {congestion_index:.2f}\n"
 )
+
+
+def _low_latency_thinking(types: Any) -> Any:
+    """Low thinking budget so the call finishes in time; None if unsupported.
+
+    `types: Any` so the construction is not type-checked against a specific
+    google-genai stub version (the `thinking_level` field is newer than some
+    installed stubs). Mirrors `agent_service._thinking_config`.
+    """
+
+    try:
+        return types.ThinkingConfig(thinking_level="low")
+    except Exception:
+        return None
 
 
 async def explain_site(payload: ExplainRequest) -> ExplainResponse:
@@ -114,7 +131,10 @@ async def _try_gemini(
             client.aio.models.generate_content(
                 model=model,
                 contents=prompt,
-                config=types.GenerateContentConfig(max_output_tokens=300),
+                config=types.GenerateContentConfig(
+                    max_output_tokens=_GEMINI_MAX_OUTPUT_TOKENS,
+                    thinking_config=_low_latency_thinking(types),
+                ),
             ),
             timeout=_GEMINI_TIMEOUT_S,
         )
