@@ -9,12 +9,9 @@ import {
   useState,
 } from "react";
 
-import { useUiStore } from "../../hooks/useUiStore";
 import { useSpeechInput } from "../../hooks/useSpeechInput";
-import { savePendingAgentHandoff } from "../../lib/fredHandoff";
 import { savePendingFredPrompt } from "../../lib/fredPrompt";
 import { speakFred } from "../../lib/fredVoice";
-import { useChatAgent } from "../../lib/queries";
 import { COUNTRIES_URL } from "../map/darkBasemap";
 import { SkipControl } from "./SkipControl";
 import { VoiceBars } from "./VoiceBars";
@@ -169,11 +166,6 @@ function Greeting({ onCommand }: { onCommand: () => void }) {
   const greetedRef = useRef(false);
   const submittedRef = useRef(false);
   const [isThinking, setIsThinking] = useState(false);
-  const chat = useChatAgent();
-
-  const powerMw = useUiStore((state) => state.powerMw);
-  const workloadType = useUiStore((state) => state.workloadType);
-  const selectedCellId = useUiStore((state) => state.selectedCellId);
 
   const submitCommand = useCallback(
     (rawCommand: string) => {
@@ -184,31 +176,14 @@ function Greeting({ onCommand }: { onCommand: () => void }) {
       submittedRef.current = true;
       setIsThinking(true);
 
-      // Fire the real agent call in the background; persist whichever path
-      // resolves so the dashboard can seed the chat without re-fetching.
-      chat.mutate(
-        {
-          history: [],
-          message: command,
-          power_mw: powerMw,
-          selected_cell_id: selectedCellId,
-          workload_type: workloadType,
-        },
-        {
-          onError: () => {
-            // Error path: hand the raw prompt to the dashboard so it can retry.
-            savePendingFredPrompt(command);
-          },
-          onSuccess: (response) => {
-            savePendingAgentHandoff(command, response);
-          },
-        },
-      );
+      // Hand the prompt to the dashboard and let it run the agent after it
+      // mounts. The agent call can take 20s+ (a thinking model), far longer
+      // than the cinematic ack below, so running it here and racing navigation
+      // would drop the result and the dashboard would lose the question. The
+      // dashboard owns the call via runAgent, the same path the chat input uses.
+      savePendingFredPrompt(command);
 
-      // Speak the short ack and advance when the audio ends. The audio is
-      // independent of the agent network call — the dashboard mounts even if
-      // the agent is slow, and uses the legacy fallback if the response did
-      // not arrive in time.
+      // Speak the short ack and advance when the audio ends.
       let advanced = false;
       const advance = () => {
         if (advanced) {
@@ -222,7 +197,7 @@ function Greeting({ onCommand }: { onCommand: () => void }) {
       // Hard backstop in case ElevenLabs never fires onEnd.
       window.setTimeout(advance, HANDOFF_TIMEOUT_MS);
     },
-    [chat, onCommand, powerMw, selectedCellId, workloadType],
+    [onCommand],
   );
 
   const speech = useSpeechInput({ onFinalTranscript: submitCommand });

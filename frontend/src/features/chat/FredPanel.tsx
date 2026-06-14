@@ -4,10 +4,6 @@ import ReactMarkdown from "react-markdown";
 import type { Components } from "react-markdown";
 
 import { useUiStore } from "../../hooks/useUiStore";
-import {
-  consumePendingAgentHandoff,
-  type FredHandoff,
-} from "../../lib/fredHandoff";
 import { consumePendingFredPrompt } from "../../lib/fredPrompt";
 import { useChatAgent } from "../../lib/queries";
 import type { AgentChatRequest, AgentChatResponse } from "../../types/api";
@@ -176,10 +172,10 @@ export function FredPanel() {
   );
 
   /**
-   * Mount: pull whatever the landing screen left for us. A successful handoff
-   * seeds both turns of the conversation and applies the search action without
-   * re-calling the agent. An error fallback (raw prompt) re-runs the agent
-   * once. Otherwise the panel stays idle on the INTRO message.
+   * Mount: if the landing screen left a pending prompt (the voice question),
+   * run the agent once with it — the same `runAgent` path the chat input uses —
+   * so the question and Fred's answer land in the dashboard and the map updates.
+   * Without a pending prompt the panel stays idle on the greeting.
    */
   useEffect(() => {
     if (initializedRef.current) {
@@ -187,30 +183,11 @@ export function FredPanel() {
     }
     initializedRef.current = true;
 
-    const handoff: FredHandoff | null = consumePendingAgentHandoff();
-    if (handoff !== null) {
-      setMessages((current) => [
-        ...current,
-        { body: handoff.userMessage, speaker: "user" },
-        {
-          body: handoff.response.message,
-          model: handoff.response.model,
-          source: handoff.response.source,
-          speaker: "assistant",
-        },
-      ]);
-      requestAnimationFrame(() => {
-        listRef.current?.scrollTo({ top: listRef.current.scrollHeight });
-      });
-      applySearchAction(handoff.response);
-      return;
-    }
-
     const pendingPrompt = consumePendingFredPrompt();
     if (pendingPrompt !== null) {
       runAgent(pendingPrompt);
     }
-  }, [applySearchAction, runAgent]);
+  }, [runAgent]);
 
   const handleSubmit = useCallback(
     (event: FormEvent<HTMLFormElement>) => {
