@@ -3,8 +3,8 @@
 Two paths share the same `chat()` entry point:
 
 1. **LLM tool-calling agent (preferred).** When `LOADSTAR_LLM_ENABLED=true` and an
-   `OPENAI_API_KEY` is set, the OpenAI Responses API drives the conversation.
-   The model has two tools — `search_sites` (real engine search) and
+   `GEMINI_API_KEY` is set, the Gemini API drives the conversation. The model
+   has two tools — `search_sites` (real engine search) and
    `explain_site` (cell explanation). The model decides when to call them; the
    server executes the call against the real engine and feeds the result back.
    The model never sees free-form numbers it can echo: every figure in its
@@ -22,7 +22,7 @@ frontend store/map updates without branching.
 
 from __future__ import annotations
 
-import json
+import asyncio
 import logging
 import re
 from typing import Any, cast
@@ -204,8 +204,7 @@ _FRED_SYSTEM_PROMPT = (
 )
 
 
-_SEARCH_SITES_TOOL: dict[str, Any] = {
-    "type": "function",
+_SEARCH_SITES_DECLARATION: dict[str, Any] = {
     "name": "search_sites",
     "description": (
         "Run the live siting engine to rank candidate cells for a "
@@ -252,13 +251,11 @@ _SEARCH_SITES_TOOL: dict[str, Any] = {
             },
         },
         "required": ["power_mw"],
-        "additionalProperties": False,
     },
 }
 
 
-_EXPLAIN_SITE_TOOL: dict[str, Any] = {
-    "type": "function",
+_EXPLAIN_SITE_DECLARATION: dict[str, Any] = {
     "name": "explain_site",
     "description": (
         "Generate a detailed explanation of a single candidate cell. Use when "
@@ -283,7 +280,6 @@ _EXPLAIN_SITE_TOOL: dict[str, Any] = {
             },
         },
         "required": ["cell_id"],
-        "additionalProperties": False,
     },
 }
 
@@ -471,7 +467,7 @@ def _facts_block(
     )
 
 
-async def _try_openai_chat(
+async def _try_gemini_chat(
     payload: AgentChatRequest,
     request: SearchRequest,
     search: SearchResponse,
@@ -495,14 +491,18 @@ async def _try_openai_chat(
         f"User question: {payload.message}\n\n{_facts_block(request, search, top)}"
     )
     try:
-        # Lazy import so monkeypatched test paths never load the OpenAI client.
-        from openai import AsyncOpenAI
+        # Lazy import so monkeypatched test paths never load the Gemini client.
+        from google import genai
+        from google.genai import types
 
-        client = AsyncOpenAI(api_key=api_key)
-        response: Any = await client.responses.create(
-            model=model,
-            input=prompt,
-            max_output_tokens=300,
+        client = genai.Client(api_key=api_key)
+        response: Any = await asyncio.wait_for(
+            client.aio.models.generate_content(
+                model=model,
+                contents=prompt,
+                config=types.GenerateContentConfig(max_output_tokens=300),
+            ),
+            timeout=_LLM_TIMEOUT_S,
         )
     except Exception as exc:
         logger.warning(
@@ -573,8 +573,8 @@ def _build_search_request_from_args(
 def _summarize_search_for_tool(
     request: SearchRequest,
     response: SearchResponse,
-) -> str:
-    """Compact JSON the LLM consumes as the search_sites result.
+) -> dict[str, Any]:
+    """Compact payload the LLM consumes as the search_sites result.
 
     Surfaces the top five candidates with the same fields the deterministic
     narration uses. Keeping this small reduces token cost and forces the model
@@ -605,112 +605,145 @@ def _summarize_search_for_tool(
         },
         "top_results": top_results,
     }
-    return json.dumps(payload, ensure_ascii=False)
+    return payload
 
 
-def _build_llm_input(payload: AgentChatRequest) -> list[dict[str, Any]]:
-    """Convert prior history + the new user message into Responses-API input.
+def _build_gemini_contents(payload: AgentChatRequest, types: Any) -> list[Any]:
+    """Convert prior history + the new user message into Gemini contents."""
 
-    The Responses API enforces different content-type tags by speaker: user
-    turns use ``input_text``; assistant turns must use ``output_text`` (or
-    ``refusal``). Mixing them up returns ``invalid_request_error`` and the
-    whole agent call fails — which silently regressed multi-turn chat to the
-    deterministic template path. Tag content blocks accordingly.
-    """
-
-    items: list[dict[str, Any]] = []
+    items: list[Any] = []
     for turn in payload.history[-8:]:
-        is_assistant = turn.speaker == "assistant"
         items.append(
-            {
-                "role": "assistant" if is_assistant else "user",
-                "content": [
-                    {
-                        "type": "output_text" if is_assistant else "input_text",
-                        "text": turn.body,
-                    }
-                ],
-            }
+            types.Content(
+                role="model" if turn.speaker == "assistant" else "user",
+                parts=[types.Part(text=turn.body)],
+            )
         )
     items.append(
-        {
-            "role": "user",
-            "content": [{"type": "input_text", "text": payload.message}],
-        }
+        types.Content(
+            role="user",
+            parts=[types.Part(text=payload.message)],
+        )
     )
     return items
 
 
 def _extract_function_calls(response: Any) -> list[dict[str, Any]]:
-    """Collect `function_call` items from a Responses-API result.
+    """Collect Gemini function calls from a model response.
 
     Each item is normalized to `{call_id, name, arguments}`. Returns an empty
     list when the model produced only a text answer.
     """
 
-    output = getattr(response, "output", None)
-    if not isinstance(output, list):
-        return []
-    output_items = cast(list[Any], output)
     calls: list[dict[str, Any]] = []
-    for item in output_items:
-        if getattr(item, "type", None) != "function_call":
+    raw_calls = _safe_getattr(response, "function_calls")
+    if isinstance(raw_calls, list):
+        for call in cast(list[Any], raw_calls):
+            name = _safe_getattr(call, "name")
+            if not isinstance(name, str):
+                continue
+            call_id = _safe_getattr(call, "id")
+            args = _safe_getattr(call, "args")
+            calls.append(
+                {
+                    "call_id": call_id if isinstance(call_id, str) else None,
+                    "name": name,
+                    "arguments": args if isinstance(args, dict) else {},
+                }
+            )
+        return calls
+
+    content = _first_candidate_content(response)
+    parts = _safe_getattr(content, "parts")
+    if not isinstance(parts, list):
+        return []
+    for part in cast(list[Any], parts):
+        function_call = _safe_getattr(part, "function_call")
+        if function_call is None:
             continue
-        call_id = getattr(item, "call_id", None) or getattr(item, "id", None)
-        name = getattr(item, "name", None)
-        arguments = getattr(item, "arguments", None)
-        if not isinstance(call_id, str) or not isinstance(name, str):
+        name = _safe_getattr(function_call, "name")
+        if not isinstance(name, str):
             continue
-        parsed_args: dict[str, Any] = {}
-        if isinstance(arguments, str) and arguments:
-            try:
-                decoded = json.loads(arguments)
-            except json.JSONDecodeError:
-                decoded = None
-            if isinstance(decoded, dict):
-                parsed_args = cast(dict[str, Any], decoded)
-        calls.append({"call_id": call_id, "name": name, "arguments": parsed_args})
+        call_id = _safe_getattr(function_call, "id")
+        args = _safe_getattr(function_call, "args")
+        calls.append(
+            {
+                "call_id": call_id if isinstance(call_id, str) else None,
+                "name": name,
+                "arguments": args if isinstance(args, dict) else {},
+            }
+        )
     return calls
 
 
+def _first_candidate_content(response: Any) -> Any:
+    candidates = _safe_getattr(response, "candidates")
+    if not isinstance(candidates, list) or not candidates:
+        return None
+    return _safe_getattr(candidates[0], "content")
+
+
+def _safe_getattr(value: Any, name: str) -> Any:
+    try:
+        return getattr(value, name, None)
+    except Exception:
+        return None
+
+
 async def _run_llm_agent(payload: AgentChatRequest) -> AgentChatResponse | None:
-    """Drive Fred via OpenAI tool-calling; return None on any error.
+    """Drive Fred via Gemini function calling; return None on any error.
 
     The loop is bounded by `_MAX_TOOL_ITERATIONS` to cap latency. After the cap
-    we force a final text reply by calling once more without `tools`. Any
+    we force a final text reply by calling once more without tools. Any
     exception falls through to the deterministic path.
     """
 
     settings = get_settings()
-    if not (settings.openai_enabled and settings.openai_api_key):
+    if not (settings.gemini_enabled and settings.gemini_api_key):
         return None
 
-    model = settings.openai_model
-    api_key = settings.openai_api_key
+    model = settings.gemini_model
+    api_key = settings.gemini_api_key
 
     last_search_request: SearchRequest | None = None
     last_search_response: SearchResponse | None = None
     tool_iterations = 0
 
     try:
-        # Lazy import keeps the OpenAI client out of the deterministic test path.
-        from openai import AsyncOpenAI
+        # Lazy import keeps the Gemini client out of the deterministic test path.
+        from google import genai
+        from google.genai import types
 
-        client: Any = AsyncOpenAI(api_key=api_key, timeout=_LLM_TIMEOUT_S)
-        input_items = _build_llm_input(payload)
-        tools: list[dict[str, Any]] | None = [_SEARCH_SITES_TOOL, _EXPLAIN_SITE_TOOL]
+        client: Any = genai.Client(api_key=api_key)
+        contents = _build_gemini_contents(payload, types)
+        tools_enabled = True
 
         while True:
-            create_kwargs: dict[str, Any] = {
-                "model": model,
-                "input": input_items,
-                "instructions": _FRED_SYSTEM_PROMPT,
+            config_kwargs: dict[str, Any] = {
+                "system_instruction": _FRED_SYSTEM_PROMPT,
                 "max_output_tokens": _LLM_MAX_OUTPUT_TOKENS,
             }
-            if tools is not None:
-                create_kwargs["tools"] = tools
+            if tools_enabled:
+                config_kwargs["tools"] = [
+                    types.Tool(
+                        function_declarations=cast(
+                            Any,
+                            [_SEARCH_SITES_DECLARATION, _EXPLAIN_SITE_DECLARATION],
+                        )
+                    )
+                ]
+                config_kwargs["automatic_function_calling"] = (
+                    types.AutomaticFunctionCallingConfig(disable=True)
+                )
 
-            response: Any = await client.responses.create(**create_kwargs)
+            response: Any = await asyncio.wait_for(
+                client.aio.models.generate_content(
+                    model=model,
+                    contents=contents,
+                    config=types.GenerateContentConfig(**config_kwargs),
+                ),
+                timeout=_LLM_TIMEOUT_S,
+            )
             calls = _extract_function_calls(response)
 
             if not calls:
@@ -723,7 +756,7 @@ async def _run_llm_agent(payload: AgentChatRequest) -> AgentChatResponse | None:
                     return None
                 action = _build_action(last_search_request, last_search_response)
                 return AgentChatResponse(
-                    source="openai",
+                    source="gemini",
                     model=model,
                     message=text,
                     action=action,
@@ -740,27 +773,23 @@ async def _run_llm_agent(payload: AgentChatRequest) -> AgentChatResponse | None:
 
             tool_iterations += 1
 
-            # Echo the model's function_call items into input, then append our
-            # function_call_output items keyed by the same call_id. This is the
-            # canonical Responses-API tool-loop shape.
-            for call in calls:
-                input_items.append(
-                    {
-                        "type": "function_call",
-                        "call_id": call["call_id"],
-                        "name": call["name"],
-                        "arguments": json.dumps(call["arguments"]),
-                    }
+            response_content = _first_candidate_content(response)
+            if response_content is None:
+                logger.warning(
+                    "agent.empty_response",
+                    extra={"event": "agent.empty_response", "model": model},
                 )
+                return None
+            contents.append(response_content)
 
             for call in calls:
-                tool_output: str
+                tool_output: dict[str, Any]
                 if call["name"] == "search_sites":
                     request = _build_search_request_from_args(payload, call["arguments"])
                     try:
                         engine_response = search_site_cells(request)
                     except Exception as exc:
-                        tool_output = json.dumps({"error": type(exc).__name__})
+                        tool_output = {"error": type(exc).__name__}
                     else:
                         last_search_request = request
                         last_search_response = engine_response
@@ -768,7 +797,7 @@ async def _run_llm_agent(payload: AgentChatRequest) -> AgentChatResponse | None:
                 elif call["name"] == "explain_site":
                     cell_id = call["arguments"].get("cell_id")
                     if not isinstance(cell_id, str) or not cell_id:
-                        tool_output = json.dumps({"error": "missing_cell_id"})
+                        tool_output = {"error": "missing_cell_id"}
                     else:
                         explain_request = ExplainRequest(
                             cell_id=cell_id,
@@ -783,23 +812,34 @@ async def _run_llm_agent(payload: AgentChatRequest) -> AgentChatResponse | None:
                         )
                         try:
                             explanation = await explain_site(explain_request)
-                            tool_output = json.dumps({"message": explanation.message})
+                            tool_output = {"message": explanation.message}
                         except KeyError:
-                            tool_output = json.dumps({"error": "unknown_cell"})
+                            tool_output = {"error": "unknown_cell"}
                 else:
-                    tool_output = json.dumps({"error": "unknown_tool"})
+                    tool_output = {"error": "unknown_tool"}
 
-                input_items.append(
-                    {
-                        "type": "function_call_output",
-                        "call_id": call["call_id"],
-                        "output": tool_output,
-                    }
+                function_response_kwargs: dict[str, Any] = {
+                    "name": call["name"],
+                    "response": tool_output,
+                }
+                if call["call_id"] is not None:
+                    function_response_kwargs["id"] = call["call_id"]
+                contents.append(
+                    types.Content(
+                        role="user",
+                        parts=[
+                            types.Part(
+                                function_response=types.FunctionResponse(
+                                    **function_response_kwargs
+                                )
+                            )
+                        ],
+                    )
                 )
 
             if tool_iterations >= _MAX_TOOL_ITERATIONS:
                 # Force a final text reply by removing tools from the next call.
-                tools = None
+                tools_enabled = False
 
     except Exception as exc:
         logger.warning(
@@ -885,19 +925,19 @@ async def _deterministic_chat(payload: AgentChatRequest) -> AgentChatResponse:
     model: str | None = None
 
     settings = get_settings()
-    if settings.openai_enabled and settings.openai_api_key:
-        live = await _try_openai_chat(
+    if settings.gemini_enabled and settings.gemini_api_key:
+        live = await _try_gemini_chat(
             payload,
             request,
             search,
             top,
-            settings.openai_api_key,
-            settings.openai_model,
+            settings.gemini_api_key,
+            settings.gemini_model,
         )
         if live is not None:
             message = live
-            source = "openai"
-            model = settings.openai_model
+            source = "gemini"
+            model = settings.gemini_model
 
     return AgentChatResponse(
         source=source,
@@ -921,7 +961,7 @@ async def chat(payload: AgentChatRequest) -> AgentChatResponse:
     """
 
     settings = get_settings()
-    if settings.openai_enabled and settings.openai_api_key:
+    if settings.gemini_enabled and settings.gemini_api_key:
         live = await _run_llm_agent(payload)
         if live is not None:
             return live

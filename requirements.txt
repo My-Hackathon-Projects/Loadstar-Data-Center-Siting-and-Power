@@ -3,7 +3,7 @@ fastapi
 httpx
 lightgbm
 numpy
-openai>=1.40
+google-genai>=1.0
 psycopg[binary]
 pydantic
 pydantic-settings

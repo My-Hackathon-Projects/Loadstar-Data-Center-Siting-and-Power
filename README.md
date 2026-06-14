@@ -40,7 +40,7 @@ Three things, in order:
 
 2. **Explain a site.** For a selected cell, the API returns a full feature payload (price, carbon, headroom, fiber distance, water distance, AlphaEarth-derived buildable land share, LightGBM viability) and runs a single-site supply-mix linear program that returns a Pareto frontier (cost vs carbon), a recommended portfolio, hourly dispatch, annual matched clean share, and 24/7 carbon-free-energy share.
 
-3. **Carry a conversation.** Fred is a real OpenAI tool-calling agent that decides when to invoke `search_sites` (running the live engine) and `explain_site` (calling the explanation service). A regex-driven deterministic fallback keeps the demo working when OpenAI is unconfigured or errors. ElevenLabs text-to-speech runs on the landing screen; the dashboard chat is text-only Markdown so judges can read structured results.
+3. **Carry a conversation.** Fred is a real Gemini tool-calling agent that decides when to invoke `search_sites` (running the live engine) and `explain_site` (calling the explanation service). A regex-driven deterministic fallback keeps the demo working when Gemini is unconfigured or errors. ElevenLabs text-to-speech runs on the landing screen; the dashboard chat is text-only Markdown so judges can read structured results.
 
 The walking skeleton ships with a curated 81-cell, 30-country European dataset (`backend/engine/data/europe_sites.json`). When the trained ML pipeline runs (`SE,DE,IE` subset), its `lightgbm_score`, `buildable_fraction`, and `dc_similarity` values **overlay** the curated base instead of replacing it — so the map covers the full continent while ML-touched cells reflect real model output.
 
@@ -64,7 +64,7 @@ Full step-by-step rehearsal: [`public/docs/demo_rehearsal.md`](public/docs/demo_
 
 ## Quick start
 
-Requirements: Python 3.13+, Node 24+, npm. Optional: Docker (for Postgres), an OpenAI key (for live Fred), ElevenLabs key + voice id (for voice on the landing screen).
+Requirements: Python 3.13+, Node 24+, npm. Optional: Docker (for Postgres), a Gemini API key (for live Fred), ElevenLabs key + voice id (for voice on the landing screen).
 
 ```bash
 # 1. install deps
@@ -86,7 +86,7 @@ npm --prefix frontend run dev      # Vite on :5173
 
 Open `http://127.0.0.1:5173` and follow the [demo flow](#demo-flow).
 
-If you do not configure Postgres / Redis / OpenAI / ElevenLabs, every dependent feature degrades gracefully — see [Fallback design](#fallback-design).
+If you do not configure Postgres / Redis / Gemini / ElevenLabs, every dependent feature degrades gracefully — see [Fallback design](#fallback-design).
 
 ---
 
@@ -110,7 +110,7 @@ If you do not configure Postgres / Redis / OpenAI / ElevenLabs, every dependent 
                 ▼                  ▼                     ▼
    ┌─────────────────┐  ┌────────────────────┐  ┌────────────────────┐
    │ engine.scoring  │  │ engine.optimizer   │  │ services.agent     │
-   │  + fixtures     │  │  scipy.linprog     │  │  OpenAI Responses  │
+   │  + fixtures     │  │  scipy.linprog     │  │  Gemini API        │
    │ (81-cell base)  │  │  highs solver      │  │  + tool calling    │
    └────────┬────────┘  └────────┬───────────┘  └────────┬───────────┘
             │                    │                       │
@@ -131,7 +131,7 @@ SPA FredPanel ── POST /agent/chat (history, message, power_mw, workload, sel
               ──> agent_service.chat()
                     │
                     ├─ if LOADSTAR_LLM_ENABLED + key:
-                    │   ├─ _run_llm_agent: OpenAI Responses API with tools=[search_sites, explain_site]
+                    │   ├─ _run_llm_agent: Gemini API with tools=[search_sites, explain_site]
                     │   │   ├─ tool call → search_site_cells() → site_repository.list_sites()
                     │   │   │                                          ├─ pipeline JSON (LightGBM+AlphaEarth)
                     │   │   │                                          └─ overlay onto curated 81-cell base
@@ -139,7 +139,7 @@ SPA FredPanel ── POST /agent/chat (history, message, power_mw, workload, sel
                     │   │   └─ final reply: Markdown with verbatim engine numbers
                     │   └─ on any exception → fall through
                     └─ deterministic fallback:
-                        regex intent parser → search_site_cells() → optional OpenAI rephrase
+                        regex intent parser → search_site_cells() → optional Gemini rephrase
               ──> AgentChatResponse { source, model, message, action, cache_key }
               ──> SPA: append to chat, apply action.search → setSearchParams + setSelectedCellId
 ```
@@ -167,7 +167,7 @@ Full Mermaid diagrams (request flow, pipeline DAG, observability sequence, cache
 | Network model | **PyPSA** | Topology and clustered OPF artifacts; the demo path uses precomputed OPF. |
 | Storage | **PostgreSQL** | `optimization_runs` (job state), `h3_cells`, `site_features`, `hourly_energy`. SQLite (`source_artifacts.db`) is used only for pipeline metadata. |
 | Cache | **In-process LRU** (default) or **Redis** (if `REDIS_URL` set) | Identical contract; flip on by env var. |
-| LLM | **OpenAI Responses API** with tool-calling | `search_sites` + `explain_site` tools; deterministic regex fallback. |
+| LLM | **Gemini API** with tool-calling | `search_sites` + `explain_site` tools; deterministic regex fallback. |
 | Voice | **ElevenLabs TTS** via `httpx` | Server-side key never reaches the browser. Browser Web Speech API does the STT. |
 | Observability | stdlib `logging` with JSON formatter, `X-Request-ID` middleware | Every log line includes `request_id`, every endpoint includes a `cache_key`. |
 | Tooling | **ruff**, **pyright** (strict), **pytest** | Strict mode on `backend/api`, `backend/engine`, `backend/pipeline`. |
@@ -286,13 +286,13 @@ Fred is two distinct surfaces with one conversational backend.
 
 **Landing screen (voice):** ElevenLabs TTS plays the greeting, browser Web Speech API does STT. The user's first request is sent to `/agent/chat` while Fred speaks a short acknowledgement (`Sure, here is the result.`); the response is persisted via session storage and the dashboard mounts seeded with both turns of the conversation.
 
-**Dashboard chat (text-only):** A proper multi-turn chat input (auto-grow textarea + Send button) renders Markdown replies. Each assistant bubble shows a source pill: `live · gpt-4o-mini` (LLM drove the turn) or `engine` (deterministic regex fallback). Search actions update the map and filters automatically when the LLM calls the `search_sites` tool; pure conversation turns leave the map untouched.
+**Dashboard chat (text-only):** A proper multi-turn chat input (auto-grow textarea + Send button) renders Markdown replies. Each assistant bubble shows a source pill: `live · gemini-3.1-pro-preview` (LLM drove the turn) or `engine` (deterministic regex fallback). Search actions update the map and filters automatically when the LLM calls the `search_sites` tool; pure conversation turns leave the map untouched.
 
 **Backend:** `backend/api/services/agent_service.py`. Two paths share the same `chat()` entry point and the same `AgentChatResponse` contract:
 
-1. **LLM tool-calling agent (preferred).** When `LOADSTAR_LLM_ENABLED=true` and `OPENAI_API_KEY` is set, the OpenAI Responses API drives the conversation with two function tools — `search_sites` (runs the live engine) and `explain_site` (calls `llm_service.explain_site`). The model never sees free-form numbers it could echo: every figure must come from a tool result, enforced by the system prompt's "Numeric faithfulness" rule. The loop is bounded by 2 tool iterations + an 8s per-call timeout; after the cap a final reply is forced by re-calling without `tools`.
+1. **LLM tool-calling agent (preferred).** When `LOADSTAR_LLM_ENABLED=true` and `GEMINI_API_KEY` is set, the Gemini API drives the conversation with two function tools — `search_sites` (runs the live engine) and `explain_site` (calls `llm_service.explain_site`). The model never sees free-form numbers it could echo: every figure must come from a tool result, enforced by the system prompt's "Numeric faithfulness" rule. The loop is bounded by 2 tool iterations + a 12s per-call timeout; after the cap a final reply is forced by re-calling without tools.
 
-2. **Deterministic regex fallback.** When the LLM is disabled, missing, or errors, a keyword-driven parser builds a `SearchRequest` (parsing country names, MW targets, emphasis terms) and runs the engine. An optional rephrase step calls OpenAI to narrate the deterministic facts when the LLM is configured but the tool-calling path errored.
+2. **Deterministic regex fallback.** When the LLM is disabled, missing, or errors, a keyword-driven parser builds a `SearchRequest` (parsing country names, MW targets, emphasis terms) and runs the engine. An optional rephrase step calls Gemini to narrate the deterministic facts when the LLM is configured but the tool-calling path errored.
 
 **Multi-turn refinement:** the system prompt explicitly instructs Fred to treat short follow-ups (`Germany`, `try 100 MW`, `cheaper instead`) as refinements of the most recent search — reuse prior `power_mw`, `workload_type`, `emphasis` unless the user changes them. Validated end-to-end with three-turn integration probes.
 
@@ -304,7 +304,7 @@ Every external dependency has a documented fallback. The demo never breaks becau
 
 | Dependency | When unavailable | Fallback | Where logged |
 |---|---|---|---|
-| OpenAI (Fred LLM) | `LOADSTAR_LLM_ENABLED=false` or key missing or API error | Deterministic regex intent parser → engine search → optional rephrase | `agent.fallback` |
+| Gemini (Fred LLM) | `LOADSTAR_LLM_ENABLED=false` or key missing or API error | Deterministic regex intent parser → engine search → optional rephrase | `agent.fallback` |
 | ElevenLabs (Fred voice) | Key missing | `/agent/speech` returns 503; UI hides the audio path | `tts.upstream_request_error` |
 | ElevenLabs (paid voice) | Free-tier account using a library voice | Returns 502 with body preview in log | `tts.upstream_http_error` |
 | LightGBM (libomp missing on Mac) | `dlopen` of `lib_lightgbm.dylib` fails | Transparent composite scorer (still per-cell, not constant) | `siting_model_subset.json::source_status: "fallback"` |
@@ -328,8 +328,8 @@ All runtime config is read from the single root `.env` (template `.env.example`)
 | `DATABASE_URL` | `postgresql://loadstar:loadstar@localhost:5432/loadstar` | Postgres DSN. `POSTGRES_URL` is a Vercel/Supabase fallback when this is unset. |
 | `REDIS_URL` | (unset) | Set to `redis://...` to swap the optimizer cache from in-process LRU to Redis. |
 | `LOADSTAR_LLM_ENABLED` | `false` | **Set to `true` to activate Fred's LLM tool-calling agent.** |
-| `OPENAI_API_KEY` | (unset) | Required when `LOADSTAR_LLM_ENABLED=true`. |
-| `OPENAI_MODEL` | `gpt-4o-mini` | Override to use a different model. |
+| `GEMINI_API_KEY` | (unset) | Required when `LOADSTAR_LLM_ENABLED=true`. |
+| `GEMINI_MODEL` | `gemini-3.1-pro-preview` | Override to use a different Gemini model. |
 | `ELEVENLABS_API_KEY` | (unset) | Required for voice TTS. |
 | `ELEVENLABS_VOICE_ID` | (unset) | Required for voice TTS. **Use a stock voice (e.g. `pNInz6obpgDQGcFmaJgB` Adam, `ErXwobaYiN019PkySvjV` Antoni) on Free; library voices return 402.** Typo-alias `ELEVEBLABS_VOICE_ID` is also accepted. |
 | `ELEVENLABS_MODEL` | `eleven_multilingual_v2` | TTS model. |
@@ -360,7 +360,7 @@ vercel --prod        # or push to the connected Git branch
 
 Vercel environment variables (Project Settings → Environment Variables):
 
-- `OPENAI_API_KEY` and `LOADSTAR_LLM_ENABLED=true` — enables Fred's live LLM (without them Fred uses the deterministic parser, still server-side).
+- `GEMINI_API_KEY` and `LOADSTAR_LLM_ENABLED=true` — enables Fred's live LLM (without them Fred uses the deterministic parser, still server-side).
 - `ELEVENLABS_API_KEY` and `ELEVENLABS_VOICE_ID` — enables Fred's voice on the landing screen (use a stock voice ID on Free tier).
 - `DATABASE_URL` / `POSTGRES_URL` — Postgres for `/health` status, the async optimizer, and `/meta/source-artifacts`. The core path (search, sync optimizer, Fred) works without it.
 - Do **not** set `WEB_DIST_DIR` (it defaults to `frontend/dist`, which is what the build produces).
@@ -511,7 +511,7 @@ Honest audit of what is and is not in the box.
 **What's missing (would not block submission, but a judge will ask):**
 
 1. **`EARTHENGINE_PROJECT` env-var plumbing.** Today the AlphaEarth CLI accepts `--earthengine-project` but does not read the env var or `Settings`. A user setting `EARTHENGINE_PROJECT=foo` in `.env` sees no effect. The fix is small: add the field to `Settings` + read it in the CLI default. ([Issue traced earlier](#fallback-design).)
-2. **Production OpenAI Realtime / streaming voice.** Today Fred's voice on the landing screen uses TTS-on-completion (~1-2 s after agent reply). A judge expecting OpenAI Realtime-style streaming voice will notice the latency.
+2. **Production streaming voice.** Today Fred's voice on the landing screen uses TTS-on-completion (~1-2 s after agent reply). A judge expecting realtime streaming voice will notice the latency.
 3. **No live ENTSO-E / Ember pull in the demo.** The pipeline reads the fallbacks; the access-check tool documents what would be required.
 4. **Async optimizer is single-process.** `BackgroundTasks` runs in the same uvicorn worker. Multi-node migration is one local change (swap to `arq` / `RQ` / Celery reading the same `optimization_runs` table); the HTTP surface stays unchanged.
 5. **PMTiles / vector tiles.** Today's overlays are <50 KB GeoJSON. When any overlay grows past ~5 MB or ~1000 features, regenerate via `tippecanoe` and switch the deck.gl layer to `MVTLayer` or `pmtiles-protocol`.
@@ -544,7 +544,7 @@ Loadstar source: **MIT** ([`LICENSE`](LICENSE)). The data sources the pipelines 
 | OpenStreetMap | Substations, water, exclusions, IXP | ODbL 1.0 | Per-cell fixture proxies |
 | ITU BBmaps | Fiber connectivity | ITU-D, fair use | IXP distance proxy |
 | Google Earth Engine + AlphaEarth | Land suitability | Earth Engine ToS | Transparent composite |
-| OpenAI Responses API | Conversational agent | OpenAI ToS | Deterministic template |
+| Gemini API | Conversational agent | Gemini API Terms | Deterministic template |
 | ElevenLabs | Text-to-speech | ElevenLabs ToS | UI hides voice when not configured |
 
 The access-check tool (`python3 -m backend.pipeline.access_check --write public/docs/access_decisions.md`) probes each external source without printing secrets and writes the live status to [`public/docs/access_decisions.md`](public/docs/access_decisions.md).

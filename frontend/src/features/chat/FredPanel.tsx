@@ -323,7 +323,7 @@ export function FredPanel() {
 }
 
 function sourceLabel(source: ExplainSource, model?: string | null): string {
-  if (source === "openai") {
+  if (source === "gemini") {
     return model ? `live · ${model}` : "live";
   }
   return "engine";

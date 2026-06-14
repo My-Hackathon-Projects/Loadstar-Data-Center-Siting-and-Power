@@ -9,7 +9,7 @@ file is the time-boxed walkthrough plus rehearsal log appendix.
 - Python 3.13.2 active in the shell (`python3 --version`).
 - Docker available (`docker compose version`); the repo ships a
   `docker-compose.yml` that brings up Postgres on `localhost:5432`.
-- `.env` at the repo root with `OPENAI_API_KEY` set if you want the live LLM
+- `.env` at the repo root with `GEMINI_API_KEY` set if you want the live LLM
   pill; the demo works either way.
 - Frontend deps installed (`cd frontend && npm install`).
 
@@ -102,7 +102,7 @@ file is the time-boxed walkthrough plus rehearsal log appendix.
 
     Status should be `completed`, `solve_ms` populated. Then trigger the
     chat panel ("Send" button) — the bubble should render with a
-    `Live · gpt-4o-mini` or `Deterministic template` pill.
+    `Live · gemini-3.1-pro-preview` or `Deterministic template` pill.
 
 ## Smoke checks (one-shot bash)
 

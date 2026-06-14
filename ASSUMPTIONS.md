@@ -104,8 +104,8 @@ Technology emissions factors for the preferred ENTSO-E method are stored in each
   emissions factors when an ENTSO-E JSON file is provided to
   `python3 -m backend.pipeline.hourly_carbon`. Fallback is the Ember monthly carbon broadcast
   (`active_method: "ember_monthly_repeat"`).
-- **OpenAI explanation:** `/agent/explain` calls the OpenAI Responses API
-  when `LOADSTAR_LLM_ENABLED=true` and `OPENAI_API_KEY` is set. On any
+- **Gemini explanation:** `/agent/explain` calls the Gemini API when
+  `LOADSTAR_LLM_ENABLED=true` and `GEMINI_API_KEY` is set. On any
   error (auth, rate-limit, network, empty response) the endpoint falls back
   to a deterministic template that uses the same site facts. The
   `ExplainResponse.source` field surfaces which path produced the message.

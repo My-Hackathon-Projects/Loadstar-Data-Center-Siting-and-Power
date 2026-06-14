@@ -43,12 +43,12 @@ class Settings(BaseSettings):
     # falls back to the in-process LRU. See `backend/api/services/result_cache.py`.
     redis_url: str | None = None
 
-    # OpenAI integration for the agent/explain endpoint and the chat panel.
-    # `openai_enabled` defaults to False; the chat falls back to the deterministic
+    # Gemini integration for the agent/explain endpoint and the chat panel.
+    # `gemini_enabled` defaults to False; the chat falls back to the deterministic
     # template when the flag is off, the key is missing, or the API errors.
-    openai_api_key: str | None = None
-    openai_model: str = "gpt-4o-mini"
-    openai_enabled: bool = Field(default=False, alias="LOADSTAR_LLM_ENABLED")
+    gemini_api_key: str | None = None
+    gemini_model: str = "gemini-3.1-pro-preview"
+    gemini_enabled: bool = Field(default=False, alias="LOADSTAR_LLM_ENABLED")
 
     # ElevenLabs text-to-speech for Fred. The API key stays server-side; the
     # frontend receives only generated audio bytes from `/agent/speech`.

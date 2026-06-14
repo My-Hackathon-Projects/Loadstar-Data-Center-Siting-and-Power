@@ -2,11 +2,10 @@
 
 Three states matter:
 - Disabled: returns the deterministic template.
-- Enabled but the OpenAI client raises: falls back to the template.
-- Enabled and the OpenAI client returns text: returns the live response.
+- Enabled but the Gemini client raises: falls back to the template.
+- Enabled and the Gemini client returns text: returns the live response.
 
-We patch `AsyncOpenAI` via `monkeypatch.setattr` on the imported symbol inside
-`llm_service` so the real module never makes a network call.
+Tests patch the Gemini helper so the real module never makes a network call.
 """
 
 from __future__ import annotations
@@ -53,22 +52,15 @@ def test_agent_explain_returns_template_when_llm_disabled(
     assert body["cache_key"].startswith("agent.explain:")
 
 
-def test_agent_explain_falls_back_when_openai_raises(
+def test_agent_explain_falls_back_when_gemini_raises(
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     monkeypatch.setenv("LOADSTAR_LLM_ENABLED", "true")
-    monkeypatch.setenv("OPENAI_API_KEY", "sk-test-key")
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
     get_settings.cache_clear()
 
-    class _BoomClient:
-        def __init__(self, **_: Any) -> None:
-            self.responses = self
-
-        async def create(self, **_: Any) -> Any:
-            raise RuntimeError("network error")
-
-    monkeypatch.setattr(llm_service, "_try_openai", _try_openai_raising)
+    monkeypatch.setattr(llm_service, "_try_gemini", _try_gemini_raising)
 
     caplog.set_level("WARNING", logger="loadstar.llm")
     client = TestClient(app)
@@ -78,29 +70,29 @@ def test_agent_explain_falls_back_when_openai_raises(
     assert body["source"] == "template"
 
 
-async def _try_openai_raising(*_: Any, **__: Any) -> str | None:
+async def _try_gemini_raising(*_: Any, **__: Any) -> str | None:
     return None
 
 
-def test_agent_explain_returns_live_response_when_openai_succeeds(
+def test_agent_explain_returns_live_response_when_gemini_succeeds(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("LOADSTAR_LLM_ENABLED", "true")
-    monkeypatch.setenv("OPENAI_API_KEY", "sk-test-key")
-    monkeypatch.setenv("OPENAI_MODEL", "gpt-4o-mini")
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    monkeypatch.setenv("GEMINI_MODEL", "gemini-3.1-pro-preview")
     get_settings.cache_clear()
 
     async def _fake_call(*_: Any, **__: Any) -> str:
         return "Lulea/Boden looks strong: high headroom, low carbon, abundant wind."
 
-    monkeypatch.setattr(llm_service, "_try_openai", _fake_call)
+    monkeypatch.setattr(llm_service, "_try_gemini", _fake_call)
 
     client = TestClient(app)
     response = client.post("/agent/explain", json=_payload())
     assert response.status_code == 200
     body = response.json()
-    assert body["source"] == "openai"
-    assert body["model"] == "gpt-4o-mini"
+    assert body["source"] == "gemini"
+    assert body["model"] == "gemini-3.1-pro-preview"
     assert body["message"].startswith("Lulea/Boden")
 
 
@@ -118,27 +110,31 @@ def test_agent_explain_404_on_unknown_cell() -> None:
     assert response.json()["detail"]["code"] == "site_not_found"
 
 
-def test_extract_response_text_handles_output_text_attr() -> None:
+def test_extract_response_text_handles_text_attr() -> None:
     @dataclass
     class _Stub:
-        output_text: str
+        text: str
 
-    assert llm_service.extract_response_text(_Stub(output_text="hi")) == "hi"
+    assert llm_service.extract_response_text(_Stub(text="hi")) == "hi"
 
 
-def test_extract_response_text_walks_structured_output() -> None:
+def test_extract_response_text_walks_structured_candidates() -> None:
     @dataclass
-    class _Block:
+    class _Part:
         text: str
 
     @dataclass
-    class _Item:
-        content: list[_Block]
+    class _Content:
+        parts: list[_Part]
+
+    @dataclass
+    class _Candidate:
+        content: _Content
 
     @dataclass
     class _Stub:
-        output: list[_Item]
-        output_text: None = None
+        candidates: list[_Candidate]
+        text: None = None
 
-    payload = _Stub(output=[_Item(content=[_Block(text="from-blocks")])])
+    payload = _Stub(candidates=[_Candidate(content=_Content(parts=[_Part(text="from-blocks")]))])
     assert llm_service.extract_response_text(payload) == "from-blocks"

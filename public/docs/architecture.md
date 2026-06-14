@@ -17,7 +17,7 @@ flowchart LR
     Engine["engine.optimizer<br/>(scipy.linprog method=highs)"]
     OptRuns[("optimization_runs<br/>Postgres")]
     Artifacts[("source_artifacts.db<br/>local SQLite ledger,<br/>read-only API")]
-    OpenAI[("OpenAI Responses API<br/>(optional)")]
+    Gemini[("Gemini API<br/>(optional)")]
     StaticLayers[/"frontend/public/layers/*.json<br/>(python -m backend.pipeline.build_layer_assets)"/]
 
     SPA -->|REST + X-Request-ID| API
@@ -32,7 +32,7 @@ flowchart LR
     SyncOpt --> LRU --> Engine
     AsyncOpt --> BG --> OptRuns
     BG --> Engine
-    Agent -->|live or template| OpenAI
+    Agent -->|live or template| Gemini
     Meta --> Artifacts
 ```
 
@@ -178,18 +178,18 @@ flowchart LR
     User["Chat panel input"] --> Mut["useExplainSite()"]
     Mut --> Endpoint["POST /agent/explain"]
     Endpoint --> Service["llm_service.explain_site"]
-    Service --> Flag{"openai_enabled<br/>+ key set?"}
+    Service --> Flag{"gemini_enabled<br/>+ key set?"}
     Flag -- "no" --> Template["Deterministic template"]
-    Flag -- "yes" --> Live["AsyncOpenAI.responses.create"]
+    Flag -- "yes" --> Live["Gemini generate_content"]
     Live --> Got{"text returned?"}
-    Got -- "yes" --> Bubble["source = openai"]
+    Got -- "yes" --> Bubble["source = gemini"]
     Got -- "no / error" --> Template
     Template --> Bubble2["source = template"]
     Bubble --> SPA
     Bubble2 --> SPA
 ```
 
-The chat panel renders a small pill — `Live · gpt-4o-mini` or
+The chat panel renders a small pill — `Live · gemini-3.1-pro-preview` or
 `Deterministic template` — so a judge can see exactly which path produced the
 explanation. A network blip during the rehearsal therefore cannot break the
 demo; the bubble simply renders with the template label.

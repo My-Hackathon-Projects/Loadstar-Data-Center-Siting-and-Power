@@ -1,11 +1,11 @@
 """LLM-backed site explanation service with a deterministic template fallback.
 
-When `Settings.openai_enabled` is true and `Settings.openai_api_key` is set,
-this service calls the OpenAI Responses API to generate a one-paragraph
-explanation of the selected cell. Any failure (auth, rate-limit, network,
-unexpected response shape) falls through to a deterministic template that uses
-the same site facts. The response carries a `source` field so the UI can show
-a small badge ("Live" vs "Deterministic template").
+When `Settings.gemini_enabled` is true and `Settings.gemini_api_key` is set,
+this service calls the Gemini API to generate a one-paragraph explanation of
+the selected cell. Any failure (auth, rate-limit, network, unexpected response
+shape) falls through to a deterministic template that uses the same site facts.
+The response carries a `source` field so the UI can show a small badge
+("Live" vs "Deterministic template").
 
 The template path is the demo-safe default: a network blip, an expired API
 key, or a regional outage cannot break the rehearsal.
@@ -13,6 +13,7 @@ key, or a regional outage cannot break the rehearsal.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any, cast
 
@@ -22,6 +23,7 @@ from backend.api.services.cache_keys import build_cache_key
 from backend.engine.contracts import ExplainRequest, ExplainResponse, SiteFeature
 
 logger = logging.getLogger("loadstar.llm")
+_GEMINI_TIMEOUT_S = 12.0
 
 _PROMPT_TEMPLATE = (
     "You are a senior data-center siting analyst. In ONE paragraph (max 110 words), "
@@ -43,7 +45,7 @@ _PROMPT_TEMPLATE = (
 async def explain_site(payload: ExplainRequest) -> ExplainResponse:
     """Return a chat-bubble explanation for the requested cell.
 
-    Tries the OpenAI Responses API when `LOADSTAR_LLM_ENABLED=true` and the
+    Tries the Gemini API when `LOADSTAR_LLM_ENABLED=true` and the
     key is set; falls back to the deterministic template on any error.
     """
 
@@ -58,13 +60,13 @@ async def explain_site(payload: ExplainRequest) -> ExplainResponse:
         payload.workload_type,
     )
     settings = get_settings()
-    if settings.openai_enabled and settings.openai_api_key:
-        live = await _try_openai(site, payload, settings.openai_api_key, settings.openai_model)
+    if settings.gemini_enabled and settings.gemini_api_key:
+        live = await _try_gemini(site, payload, settings.gemini_api_key, settings.gemini_model)
         if live is not None:
             return ExplainResponse(
                 cell_id=payload.cell_id,
-                source="openai",
-                model=settings.openai_model,
+                source="gemini",
+                model=settings.gemini_model,
                 message=live,
                 cache_key=cache_key,
             )
@@ -77,13 +79,13 @@ async def explain_site(payload: ExplainRequest) -> ExplainResponse:
     )
 
 
-async def _try_openai(
+async def _try_gemini(
     site: SiteFeature,
     payload: ExplainRequest,
     api_key: str,
     model: str,
 ) -> str | None:
-    """Call the OpenAI Responses API; return None on any error."""
+    """Call the Gemini API; return None on any error."""
 
     prompt = _PROMPT_TEMPLATE.format(
         power_mw=payload.power_mw,
@@ -101,14 +103,18 @@ async def _try_openai(
     )
     try:
         # Lazy import so test paths that monkey-patch the module don't pay the
-        # cost of loading the OpenAI client.
-        from openai import AsyncOpenAI
+        # cost of loading the Gemini client.
+        from google import genai
+        from google.genai import types
 
-        client = AsyncOpenAI(api_key=api_key)
-        response: Any = await client.responses.create(
-            model=model,
-            input=prompt,
-            max_output_tokens=300,
+        client = genai.Client(api_key=api_key)
+        response: Any = await asyncio.wait_for(
+            client.aio.models.generate_content(
+                model=model,
+                contents=prompt,
+                config=types.GenerateContentConfig(max_output_tokens=300),
+            ),
+            timeout=_GEMINI_TIMEOUT_S,
         )
     except Exception as exc:
         logger.warning(
@@ -132,28 +138,46 @@ async def _try_openai(
 
 
 def extract_response_text(response: Any) -> str | None:
-    """Pull the assistant message out of the Responses API payload.
+    """Pull assistant text out of common SDK response shapes."""
 
-    The 1.x SDK exposes a convenience `output_text` attribute; we still walk
-    the structured payload as a fallback in case the SDK surface evolves.
-    """
-
-    text = getattr(response, "output_text", None)
+    text = _safe_getattr(response, "text")
     if isinstance(text, str) and text.strip():
         return text.strip()
+
+    candidates = _safe_getattr(response, "candidates")
+    if isinstance(candidates, list):
+        for candidate in cast(list[Any], candidates):
+            content = _safe_getattr(candidate, "content")
+            parts = _safe_getattr(content, "parts")
+            if not isinstance(parts, list):
+                continue
+            for part in cast(list[Any], parts):
+                part_text = _safe_getattr(part, "text")
+                if isinstance(part_text, str) and part_text.strip():
+                    return part_text.strip()
+
+    text = _safe_getattr(response, "output_text")
+    if isinstance(text, str) and text.strip():
+        return text.strip()
+
     output = getattr(response, "output", None)
     if isinstance(output, list):
-        # Pyright cannot narrow the element type from `Any`-rooted attribute
-        # access; cast so the loop bodies are typed.
         for item in cast(list[Any], output):
-            content = getattr(item, "content", None)
+            content = _safe_getattr(item, "content")
             if not isinstance(content, list):
                 continue
             for block in cast(list[Any], content):
-                block_text = getattr(block, "text", None)
+                block_text = _safe_getattr(block, "text")
                 if isinstance(block_text, str) and block_text.strip():
                     return block_text.strip()
     return None
+
+
+def _safe_getattr(value: Any, name: str) -> Any:
+    try:
+        return getattr(value, name, None)
+    except Exception:
+        return None
 
 
 def _template_message(site: SiteFeature, payload: ExplainRequest) -> str:

@@ -4,10 +4,10 @@ Two paths share the same endpoint and contract:
 
 * **Deterministic** — keyword-driven regex parser, used when the LLM is
   disabled or fails. Covered by the original tests below.
-* **LLM tool-calling** — OpenAI Responses API with `search_sites` and
+* **LLM tool-calling** — Gemini API with `search_sites` and
   `explain_site` tools. Covered by the new tests at the bottom that
   monkeypatch ``_run_llm_agent``; they intentionally do not exercise the
-  OpenAI SDK transport.
+  Gemini SDK transport.
 """
 
 from __future__ import annotations
@@ -151,18 +151,18 @@ def test_chat_mw_override_can_empty_results(
     assert "No candidate" in body["message"]
 
 
-def test_chat_uses_live_response_when_openai_succeeds(
+def test_chat_uses_live_response_when_gemini_succeeds(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("LOADSTAR_LLM_ENABLED", "true")
-    monkeypatch.setenv("OPENAI_API_KEY", "sk-test-key")
-    monkeypatch.setenv("OPENAI_MODEL", "gpt-4o-mini")
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    monkeypatch.setenv("GEMINI_MODEL", "gemini-3.1-pro-preview")
     get_settings.cache_clear()
 
     async def _fake_call(*_: Any, **__: Any) -> str:
         return "Lulea/Boden leads on carbon and headroom. Flying you there."
 
-    monkeypatch.setattr(agent_service, "_try_openai_chat", _fake_call)
+    monkeypatch.setattr(agent_service, "_try_gemini_chat", _fake_call)
 
     # Force the deterministic path so this test exercises the rephraser, not
     # the new tool-calling agent. The rephraser is the contract this test
@@ -175,28 +175,28 @@ def test_chat_uses_live_response_when_openai_succeeds(
     client = TestClient(app)
     body = _post(client, "cheapest site in Sweden")
 
-    assert body["source"] == "openai"
-    assert body["model"] == "gpt-4o-mini"
+    assert body["source"] == "gemini"
+    assert body["model"] == "gemini-3.1-pro-preview"
     assert body["message"].startswith("Lulea/Boden")
     # The action still carries the real engine search, not the narration.
     assert body["action"]["type"] == "search"
     assert body["action"]["search"]["results"]
 
 
-def test_chat_falls_back_to_template_when_openai_raises(
+def test_chat_falls_back_to_template_when_gemini_raises(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("LOADSTAR_LLM_ENABLED", "true")
-    monkeypatch.setenv("OPENAI_API_KEY", "sk-test-key")
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
     get_settings.cache_clear()
 
     async def _raises(*_: Any, **__: Any) -> str | None:
         return None
 
-    monkeypatch.setattr(agent_service, "_try_openai_chat", _raises)
+    monkeypatch.setattr(agent_service, "_try_gemini_chat", _raises)
 
     # Force the LLM tool-calling agent to bow out so the deterministic path
-    # runs (and exercises the fall-through `_try_openai_chat` rephraser).
+    # runs (and exercises the fall-through `_try_gemini_chat` rephraser).
     async def _no_llm_agent(_: AgentChatRequest) -> AgentChatResponse | None:
         return None
 
@@ -214,8 +214,8 @@ def test_chat_falls_back_to_template_when_openai_raises(
 
 def _enable_llm_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("LOADSTAR_LLM_ENABLED", "true")
-    monkeypatch.setenv("OPENAI_API_KEY", "sk-test-key")
-    monkeypatch.setenv("OPENAI_MODEL", "gpt-4o-mini")
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    monkeypatch.setenv("GEMINI_MODEL", "gemini-3.1-pro-preview")
     get_settings.cache_clear()
 
 
@@ -228,8 +228,8 @@ def test_chat_llm_path_used_when_enabled_and_no_tool_call(
 
     async def _llm(_: AgentChatRequest) -> AgentChatResponse | None:
         return AgentChatResponse(
-            source="openai",
-            model="gpt-4o-mini",
+            source="gemini",
+            model="gemini-3.1-pro-preview",
             message="Hello! Tell me an MW target and a country and I will go.",
             action=AgentAction(type="none"),
             cache_key="agent.chat.llm:greet",
@@ -240,8 +240,8 @@ def test_chat_llm_path_used_when_enabled_and_no_tool_call(
     client = TestClient(app)
     body = _post(client, "hi fred")
 
-    assert body["source"] == "openai"
-    assert body["model"] == "gpt-4o-mini"
+    assert body["source"] == "gemini"
+    assert body["model"] == "gemini-3.1-pro-preview"
     assert body["action"]["type"] == "none"
     assert body["action"]["search"] is None
 
@@ -265,8 +265,8 @@ def test_chat_llm_path_invokes_search_action(
 
     async def _llm(_: AgentChatRequest) -> AgentChatResponse | None:
         return AgentChatResponse(
-            source="openai",
-            model="gpt-4o-mini",
+            source="gemini",
+            model="gemini-3.1-pro-preview",
             message="Sure, Lulea/Boden leads. Flying the map there now.",
             action=AgentAction(
                 type="search",
@@ -282,7 +282,7 @@ def test_chat_llm_path_invokes_search_action(
     client = TestClient(app)
     body = _post(client, "cheapest 280 MW site in Sweden")
 
-    assert body["source"] == "openai"
+    assert body["source"] == "gemini"
     assert body["action"]["type"] == "search"
     assert body["action"]["focus_cell_id"] == focus_cell_id
     assert body["action"]["applied"]["country_filter"] == ["SE"]
@@ -303,7 +303,7 @@ def test_chat_llm_path_falls_back_when_returns_none(
         return None
 
     monkeypatch.setattr(agent_service, "_run_llm_agent", _llm)
-    monkeypatch.setattr(agent_service, "_try_openai_chat", _no_rephrase)
+    monkeypatch.setattr(agent_service, "_try_gemini_chat", _no_rephrase)
 
     client = TestClient(app)
     body = _post(client, "find sites in Germany")
@@ -327,8 +327,8 @@ def test_chat_llm_path_forwards_history(
         captured["history"] = [(turn.speaker, turn.body) for turn in payload.history]
         captured["message"] = payload.message
         return AgentChatResponse(
-            source="openai",
-            model="gpt-4o-mini",
+            source="gemini",
+            model="gemini-3.1-pro-preview",
             message="Got it.",
             action=AgentAction(type="none"),
             cache_key="agent.chat.llm:hist",

@@ -331,7 +331,7 @@ export interface components {
              * Source
              * @enum {string}
              */
-            source: "openai" | "template";
+            source: "gemini" | "template";
         };
         /**
          * AgentChatTurn
@@ -409,7 +409,7 @@ export interface components {
          * ExplainResponse
          * @description Result of an agent explanation. Falls back to the template on any LLM error.
          *
-         *     `source` lets the UI render a "Live · gpt-4o-mini" pill versus a
+         *     `source` lets the UI render a "Live · gemini-3.1-pro-preview" pill versus a
          *     "Deterministic template" pill; both render the same chat bubble shape.
          */
         ExplainResponse: {
@@ -425,7 +425,7 @@ export interface components {
              * Source
              * @enum {string}
              */
-            source: "openai" | "template";
+            source: "gemini" | "template";
         };
         /**
          * FredSpeechRequest
@@ -542,6 +542,12 @@ export interface components {
             longitude: number;
             /** Mean Price Eur Mwh */
             mean_price_eur_mwh: number;
+            /** Nearest Substation Capacity Mva */
+            nearest_substation_capacity_mva?: number | null;
+            /** Nearest Substation Distance Km */
+            nearest_substation_distance_km?: number | null;
+            /** Nearest Substation Kv */
+            nearest_substation_kv?: number | null;
             /** Price Volatility */
             price_volatility: number;
             /** Region Name */
@@ -561,12 +567,6 @@ export interface components {
             water_dist_km: number;
             /** Wind Cf */
             wind_cf: number;
-            /** Nearest Substation Kv */
-            nearest_substation_kv?: number | null;
-            /** Nearest Substation Distance Km */
-            nearest_substation_distance_km?: number | null;
-            /** Nearest Substation Capacity Mva */
-            nearest_substation_capacity_mva?: number | null;
         };
         /** LayerResponse */
         LayerResponse: {
@@ -812,6 +812,12 @@ export interface components {
             longitude: number;
             /** Mean Price Eur Mwh */
             mean_price_eur_mwh: number;
+            /** Nearest Substation Capacity Mva */
+            nearest_substation_capacity_mva?: number | null;
+            /** Nearest Substation Distance Km */
+            nearest_substation_distance_km?: number | null;
+            /** Nearest Substation Kv */
+            nearest_substation_kv?: number | null;
             /** Price Volatility */
             price_volatility: number;
             /** Region Name */
@@ -831,12 +837,6 @@ export interface components {
             water_dist_km: number;
             /** Wind Cf */
             wind_cf: number;
-            /** Nearest Substation Kv */
-            nearest_substation_kv?: number | null;
-            /** Nearest Substation Distance Km */
-            nearest_substation_distance_km?: number | null;
-            /** Nearest Substation Capacity Mva */
-            nearest_substation_capacity_mva?: number | null;
         };
         /**
          * SourceArtifact

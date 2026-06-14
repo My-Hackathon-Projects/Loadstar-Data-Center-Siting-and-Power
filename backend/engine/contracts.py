@@ -272,7 +272,7 @@ class OptimizationJobStatus(BaseModel):
     error: ApiErrorDetail | None = None
 
 
-ExplainSource = Literal["openai", "template"]
+ExplainSource = Literal["gemini", "template"]
 
 
 class ExplainRequest(BaseModel):
@@ -286,7 +286,7 @@ class ExplainRequest(BaseModel):
 class ExplainResponse(BaseModel):
     """Result of an agent explanation. Falls back to the template on any LLM error.
 
-    `source` lets the UI render a "Live · gpt-4o-mini" pill versus a
+    `source` lets the UI render a "Live · gemini-3.1-pro-preview" pill versus a
     "Deterministic template" pill; both render the same chat bubble shape.
     """
 
