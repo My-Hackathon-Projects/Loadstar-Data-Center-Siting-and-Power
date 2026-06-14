@@ -1,15 +1,12 @@
-earthengine-api
+# Runtime dependencies for the Vercel serverless function (backend.api.main:app).
+# Keep this list lean: Vercel bundles every installed package with no
+# tree-shaking and enforces a 500 MB function limit. Pipeline-only packages and
+# dev tools live in requirements-dev.txt and never ship to production.
 fastapi
-httpx
-lightgbm
-numpy
-google-genai>=1.0
-psycopg[binary]
+uvicorn
 pydantic
 pydantic-settings
-pyright
-pytest
-ruff
+httpx
+psycopg[binary]
 scipy
-typer
-uvicorn
+google-genai>=1.0

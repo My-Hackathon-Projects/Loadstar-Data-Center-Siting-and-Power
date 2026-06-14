@@ -1,6 +1,6 @@
 # Loadstar — Data-Center Siting and Power
 
-[![CI](https://img.shields.io/badge/tests-96%20backend%20%2B%2028%20frontend-brightgreen)](#validation) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) [![Stack](https://img.shields.io/badge/stack-FastAPI%20%2B%20Vite%20%2B%20React-informational)](#stack)
+[![CI](https://img.shields.io/badge/tests-118%20backend%20%2B%2030%20frontend-brightgreen)](#validation) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) [![Stack](https://img.shields.io/badge/stack-FastAPI%20%2B%20Vite%20%2B%20React-informational)](#stack)
 
 Loadstar is a decision-support product for the Invertix **Data-Center Siting & Power** challenge. Given a target megawatt size and a workload type, it ranks European data-center sites by composite score, lets a user explore tradeoffs across price, carbon, congestion, grid headroom, connectivity, land suitability, and ML viability, runs a real linear-programming supply-mix optimizer for the selected site, and explains the result in natural language through a real conversational LLM agent (Fred) with a deterministic fallback.
 
@@ -67,8 +67,8 @@ Full step-by-step rehearsal: [`public/docs/demo_rehearsal.md`](public/docs/demo_
 Requirements: Python 3.13+, Node 24+, npm. Optional: Docker (for Postgres), a Gemini API key (for live Fred), ElevenLabs key + voice id (for voice on the landing screen).
 
 ```bash
-# 1. install deps
-python3 -m pip install -r requirements.txt
+# 1. install deps (requirements-dev.txt = lean runtime + pipeline + tooling)
+python3 -m pip install -r requirements-dev.txt
 npm --prefix frontend install
 
 # 2. (optional) Postgres for the async optimizer + observability tables
@@ -348,7 +348,8 @@ All runtime config is read from the single root `.env` (template `.env.example`)
 
 The whole product runs from one Vercel project: the FastAPI app is deployed as a single Python Serverless Function (`tool.vercel.entrypoint = backend.api.main:app` in `pyproject.toml`) and that app also serves the built SPA and its static assets. There is no separate frontend host and no CORS to manage; everything is same-origin.
 
-- `vercel.json` builds the SPA (`npm --prefix frontend run build`) so `frontend/dist` is bundled into the function, then trims tests/data/ml from the bundle with `functions.excludeFiles`.
+- `vercel.json` `buildCommand` builds the SPA (`npm --prefix frontend run build`) so `frontend/dist` is bundled into the function, then deletes `frontend/node_modules` to keep the bundle small. `.vercelignore` keeps tests, `/data`, `/eval`, `/ml`, and other non-runtime files out of the function (there is no automatic Python tree-shaking, and the function has a 500 MB limit).
+- The serverless function installs `requirements.txt`, which is the lean runtime set. Pipeline-only packages (`lightgbm`, `earthengine-api`) and tooling live in `requirements-dev.txt` and never ship.
 - `backend/api/main.py` mounts `/assets`, `/fonts`, `/geo`, `/data`, and the prebuilt `/layers/{name}.json`, serves `index.html` for the SPA routes (`/`, `/tech`, `/thanks`), and keeps real API 404s.
 - The frontend runs a one-time `/health` probe (`frontend/src/api/dataSource.ts`). On Vercel the function answers `/health`, so search, the supply-mix optimizer, and Fred (LLM + deterministic parser) all use the **live API**. If the API is ever unreachable, the SPA degrades to an in-browser scoring engine (`frontend/src/lib/siteEngine.ts`, pinned to the Python output by `siteEngine.test.ts`) so search/detail/compare keep working.
 
@@ -374,10 +375,10 @@ If the project was previously deployed as a static site, set the Vercel Framewor
 ```bash
 python3 -m ruff check backend                      # lint
 python3 -m pyright backend/api backend/engine backend/pipeline   # strict typecheck
-python3 -m pytest                                  # 96 backend tests + 9 skipped (env-gated)
+python3 -m pytest                                  # 118 backend tests + 9 skipped (env-gated)
 npm --prefix frontend run lint                     # ESLint strict + React-hooks rules
 npm --prefix frontend run typecheck                # tsc -b
-npm --prefix frontend run test -- --run            # 28 vitest tests
+npm --prefix frontend run test -- --run            # 30 vitest tests
 npm --prefix frontend run build                    # production build
 ```
 

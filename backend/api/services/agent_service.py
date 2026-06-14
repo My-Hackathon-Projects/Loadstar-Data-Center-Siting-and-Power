@@ -495,7 +495,9 @@ async def _try_gemini_chat(
         from google import genai
         from google.genai import types
 
-        client = genai.Client(api_key=api_key)
+        # `client: Any` because google-genai's `generate_content` signature is
+        # partially unknown under pyright strict mode; matches `_run_llm_agent`.
+        client: Any = genai.Client(api_key=api_key)
         response: Any = await asyncio.wait_for(
             client.aio.models.generate_content(
                 model=model,

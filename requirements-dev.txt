@@ -1,0 +1,16 @@
+# Local + CI dependencies. Installs the lean runtime set plus the pipeline-only
+# packages and tooling that the Vercel function does not need.
+#   make setup          -> installs this file
+#   pip install -r requirements-dev.txt
+-r requirements.txt
+
+# Pipeline only: data ingestion and ML training. The API never imports these.
+earthengine-api
+lightgbm
+numpy
+typer
+
+# Tooling: lint, typecheck, test.
+pyright
+pytest
+ruff

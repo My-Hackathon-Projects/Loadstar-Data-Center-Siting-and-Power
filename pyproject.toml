@@ -4,21 +4,28 @@ version = "0.1.0"
 description = "Data-center siting and power planning skeleton for the Invertix challenge"
 license = { text = "MIT" }
 requires-python = ">=3.13"
+# Runtime dependencies only. Vercel may install from this list, so it must match
+# the lean set in requirements.txt. Pipeline-only packages live in the
+# `pipeline` extra below and are excluded from the serverless function.
 dependencies = [
-  "earthengine-api",
   "fastapi",
-  "lightgbm",
-  "numpy",
-  "google-genai>=1.0",
-  "psycopg[binary]",
+  "uvicorn",
   "pydantic",
   "pydantic-settings",
+  "httpx",
+  "psycopg[binary]",
   "scipy",
-  "typer",
-  "uvicorn",
+  "google-genai>=1.0",
 ]
 
 [project.optional-dependencies]
+# Data ingestion and ML training. The API never imports these.
+pipeline = [
+  "earthengine-api",
+  "lightgbm",
+  "numpy",
+  "typer",
+]
 dev = [
   "pyright",
   "pytest",

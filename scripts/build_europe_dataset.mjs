@@ -366,15 +366,17 @@ function main() {
   );
 
   const json = `${JSON.stringify(sites, null, 2)}\n`;
+  // This script owns only the backend source dataset. The SPA's
+  // `frontend/public/data/sites.json` is written by
+  // `backend.pipeline.build_layer_assets`, which dumps the validated
+  // `SiteFeature` view the API serves so the local `siteEngine` stays in parity
+  // with the backend ranking. Run `make dataset` to regenerate both in order.
   const backendPath = resolve(ROOT, "backend/engine/data/europe_sites.json");
-  const frontendPath = resolve(ROOT, "frontend/public/data/sites.json");
   writeFileSync(backendPath, json);
-  writeFileSync(frontendPath, json);
 
   const countries = new Set(sites.map((s) => s.country_code));
   console.log(`Wrote ${sites.length} sites across ${countries.size} countries.`);
   console.log(`- ${backendPath}`);
-  console.log(`- ${frontendPath}`);
 }
 
 main();

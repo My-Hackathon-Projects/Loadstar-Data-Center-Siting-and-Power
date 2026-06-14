@@ -6,6 +6,10 @@
 __pycache__/
 **/__pycache__/
 *.py[cod]
+# Dev-only files the serverless function never imports. Keeps the Python bundle
+# lean (no automatic tree-shaking; 500 MB limit).
+requirements-dev.txt
+backend/tests/
 # Anchored to repo root so they do not also match frontend/public/data, which
 # ships the SPA's static dataset and must reach the Vercel build.
 /data/

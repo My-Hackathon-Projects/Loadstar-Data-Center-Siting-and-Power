@@ -22,6 +22,8 @@ frontend/playwright-report/
 .vercel/
 .env.local
 .env*
+# Keep the committed template; the broad .env* rule above would hide it otherwise.
+!.env.example
 
 # Ember price ingestion: the 40 MB Ember zip and the local SQLite DB stay
 # local. Each developer runs `python3 ember/ingest.py` once on their machine.

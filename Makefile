@@ -1,7 +1,7 @@
 .PHONY: setup dev frontend-dev web-dev frontend-types lint format typecheck test e2e migrate migrate-sqlite pipeline-subset ingest-subset carbon-subset alphaearth-land-subset features-subset siting-model-subset layer-assets dataset
 
 setup:
-	python3 -m pip install -r requirements.txt
+	python3 -m pip install -r requirements-dev.txt
 	npm --prefix frontend install
 
 dev:
