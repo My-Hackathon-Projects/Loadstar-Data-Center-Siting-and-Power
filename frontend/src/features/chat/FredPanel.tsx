@@ -250,7 +250,7 @@ export function FredPanel() {
   }, [inputValue]);
 
   return (
-    <section className="flex h-full flex-col rounded-2xl border border-subtle bg-panel p-4">
+    <section className="flex h-[60vh] flex-col rounded-2xl border border-subtle bg-panel p-4 lg:h-full">
       <div className="flex items-center gap-3">
         <div
           aria-hidden

@@ -29,7 +29,7 @@ export function SpecificationsBar({ open, onToggle }: SpecificationsBarProps) {
 
   if (!open) {
     return (
-      <aside className="flex h-full flex-col items-center rounded-2xl border border-subtle bg-panel py-3">
+      <aside className="flex flex-col items-center rounded-2xl border border-subtle bg-panel py-3 lg:h-full">
         <button
           aria-label="Expand specifications"
           className="text-dim transition-colors hover:text-primary"
@@ -46,7 +46,7 @@ export function SpecificationsBar({ open, onToggle }: SpecificationsBarProps) {
   }
 
   return (
-    <aside className="flex h-full flex-col overflow-y-auto rounded-2xl border border-subtle bg-panel p-4">
+    <aside className="flex flex-col rounded-2xl border border-subtle bg-panel p-4 lg:h-full lg:overflow-y-auto">
       <div className="flex items-center justify-between">
         <p className="eyebrow">specifications</p>
         <button

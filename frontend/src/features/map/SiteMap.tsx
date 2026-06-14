@@ -325,7 +325,7 @@ export function SiteMap() {
   }, [selectedSiteQuery.data?.site]);
 
   return (
-    <section className="relative h-full min-h-[420px] overflow-hidden rounded-2xl border border-subtle bg-void">
+    <section className="relative h-[60vh] min-h-[420px] overflow-hidden rounded-2xl border border-subtle bg-void lg:h-full">
       <DeckGL
         controller
         getTooltip={(info: PickingInfo) => buildTooltip(info, activeLayer, activeLayerOption.label, selectedSiteContext)}

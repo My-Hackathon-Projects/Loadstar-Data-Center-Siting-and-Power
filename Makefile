@@ -27,7 +27,11 @@ typecheck:
 	python3 -m pyright backend/api backend/engine backend/pipeline
 	npm --prefix frontend run typecheck
 
-test:
+# Depends on `layer-assets` because the frontend parity test
+# (`siteEngine.test.ts`) reads the Python-generated `composite_score.json` and
+# `sites.json` golden files. They are gitignored, so CI and fresh clones must
+# regenerate them from the committed `europe_sites.json` before the test runs.
+test: layer-assets
 	python3 -m pytest
 	npm --prefix frontend run test
 

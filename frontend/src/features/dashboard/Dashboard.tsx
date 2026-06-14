@@ -38,7 +38,7 @@ export default function Dashboard() {
     : "lg:grid-cols-[48px_minmax(0,1fr)_360px]";
 
   return (
-    <main className="flex h-screen flex-col gap-3 overflow-y-auto bg-void p-3 text-primary sm:p-4 lg:overflow-hidden">
+    <main className="flex min-h-screen flex-col gap-3 bg-void p-3 text-primary sm:p-4 lg:h-screen lg:overflow-hidden">
       <header className="flex items-center justify-between">
         <div className="flex items-baseline gap-3">
           <span className="text-sm lowercase tracking-[0.3em] text-dim">
@@ -64,7 +64,7 @@ export default function Dashboard() {
       </header>
 
       <div
-        className={`grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-rows-1 ${columns}`}
+        className={`grid min-h-0 grid-cols-1 gap-3 lg:flex-1 lg:grid-rows-1 ${columns}`}
       >
         <SpecificationsBar
           onToggle={() => setSpecsOpen((open) => !open)}
